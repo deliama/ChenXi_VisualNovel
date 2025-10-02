@@ -33,7 +33,7 @@ void AVNPlayerController::BeginPlay()
 			// 绑定 Triggered 事件到 AdvanceDialogue 函数
 			EnhancedInputComponent->BindAction(
 				AdvanceDialogueAction, 
-				ETriggerEvent::Triggered, 
+				ETriggerEvent::Started, 
 				this, 
 				&AVNPlayerController::AdvanceDialogue
 			);
@@ -88,27 +88,36 @@ void AVNPlayerController::AdvanceDialogue(const FInputActionValue& Value)
 	if (!DialogueWidgetInstance)
 	{
 		InitializeUI();
+		// 第一次点击只创建UI，不立即推进对话，可以防止意外跳过第一句
+		return; 
 	}
-    
-	// 检查 GameMode 和 Widget 实例是否都存在
-	AVNGameMode* VNGameMode = Cast<AVNGameMode>(GetWorld()->GetAuthGameMode());
-    
-	if (VNGameMode && DialogueWidgetInstance)
-	{
-		FDialogLine CurrentLineData;
 
-		// 2. 调用 GameMode 的函数获取下一行数据
-		if (VNGameMode->GetNextDialogLine(CurrentLineData))
+	if(DialogueWidgetInstance && DialogueWidgetInstance->bIsTypewriterActive)
+	{
+		// 如果正在播放，则调用SkipTypewriter，让动画立即完成
+		DialogueWidgetInstance->SkipTypewriter();
+	}else
+	{
+		// 检查 GameMode 和 Widget 实例是否都存在
+		AVNGameMode* VNGameMode = Cast<AVNGameMode>(GetWorld()->GetAuthGameMode());
+    
+		if (VNGameMode && DialogueWidgetInstance)
 		{
-			// 3. 将获取到的数据传递给 UI Widget
-			DialogueWidgetInstance->DisplayDialogueLine(CurrentLineData);
+			FDialogLine CurrentLineData;
+
+			// 2. 调用 GameMode 的函数获取下一行数据
+			if (VNGameMode->GetNextDialogLine(CurrentLineData))
+			{
+				// 3. 将获取到的数据传递给 UI Widget
+				DialogueWidgetInstance->DisplayDialogueLine(CurrentLineData);
             
-			UE_LOG(LogTemp, Log, TEXT("Controller passed data to UI: [%s]"), *CurrentLineData.CharacterName);
-		}
-		else
-		{
-			// 对话结束
-			UE_LOG(LogTemp, Warning, TEXT("Dialogue has finished."));
+				UE_LOG(LogTemp, Log, TEXT("Controller passed data to UI: [%s]"), *CurrentLineData.CharacterName);
+			}
+			else
+			{
+				// 对话结束
+				UE_LOG(LogTemp, Warning, TEXT("Dialogue has finished."));
+			}
 		}
 	}
 }
