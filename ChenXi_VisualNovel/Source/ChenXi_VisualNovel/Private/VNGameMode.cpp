@@ -2,6 +2,9 @@
 
 #include "VNGameMode.h"
 #include "VNPlayerController.h" // 需要引入PlayerController，以便在构造函数中设置
+#include "Components/AudioComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundCue.h"
 
 AVNGameMode::AVNGameMode()
 {
@@ -68,6 +71,32 @@ void AVNGameMode::StartDialog()
 	// 此时可以通知 UI 系统显示第一个场景或第一行对话
 }
 
+void AVNGameMode::PlaySoundForLine(const FDialogLine& DialogLine)
+{
+	// --- BGM切换逻辑 ---
+	static TSoftObjectPtr<USoundCue> CurrentBGMTrack = nullptr;
+	if(!DialogLine.BGM.IsNull() && DialogLine.BGM != CurrentBGMTrack)
+	{
+		CurrentBGMTrack = DialogLine.BGM;
+
+		if(CurrentBgmComponent && CurrentBgmComponent->IsPlaying())
+		{
+			CurrentBgmComponent->Stop();
+		}
+
+		//使用SpawnSound2D播放声音，他会自动处理加载和播放
+		CurrentBgmComponent = UGameplayStatics::SpawnSound2D(this,DialogLine.BGM.LoadSynchronous());
+		
+	}
+
+	// --- 特殊音效（SFX）播放逻辑 ---
+	if(!DialogLine.SFX.IsNull())
+	{
+		UGameplayStatics::PlaySound2D(this,DialogLine.SFX.LoadSynchronous());
+	}
+}
+
+
 bool AVNGameMode::GetNextDialogLine(FDialogLine& OutDialogLine)
 {
 	if (CurrentDialogIndex < StoryLines.Num())
@@ -80,7 +109,9 @@ bool AVNGameMode::GetNextDialogLine(FDialogLine& OutDialogLine)
 			   CurrentDialogIndex,
 			   *OutDialogLine.CharacterName, 
 			   *OutDialogLine.DialogueText.ToString());
-        
+
+		PlaySoundForLine(OutDialogLine);
+		
 		// 成功获取数据，返回 true
 		return true;
 	}

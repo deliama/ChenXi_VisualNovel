@@ -5,6 +5,13 @@
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
 #include "Engine/DataTable.h"
+#include "Engine/Texture2D.h"
+#include "UObject/SoftObjectPtr.h"
+
+class USoundBase;
+class USoundCue;
+class UAudioComponent;
+
 #include "VNGameMode.generated.h"
 
 // 故事文本结构体 (用于存储在DataTable中)
@@ -28,7 +35,19 @@ public:
 
 	// 角色立绘/表情ID (用于通知UI显示)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VN|Visual")
-	FName CharacterSpriteID; 
+	FName CharacterSpriteID;
+
+	//新增：指定此对话行的背景图片
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VN|Visual")
+	TSoftObjectPtr<UTexture2D> BackgroundImage;
+
+	//bgm轨道：如果设置了，那么就从这一行开始播放此bgm
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VN|Audio")
+	TSoftObjectPtr<USoundCue> BGM;
+
+	//特殊音效：如果设置了，则在此行触发一次特殊音效
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VN|Audio")
+	TSoftObjectPtr<USoundBase> SFX;
 };
 
 /**
@@ -56,6 +75,13 @@ private:
 
 	// 存储从DataTable加载的所有对话行
 	TArray<FDialogLine> StoryLines;
+
+	//处理对话附带的声音事件
+	void PlaySoundForLine(const FDialogLine& DialogLine);
+
+	//追踪当前正在播放的BGM
+	UPROPERTY()
+	UAudioComponent* CurrentBgmComponent;
 
 public:
 	// 对外暴露的函数：开始游戏和加载对话

@@ -5,7 +5,8 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 // 引入 FDialogLine 结构体所在的头文件
-#include "VNGameMode.h" 
+#include "VNGameMode.h"
+#include "Engine/Texture2D.h"
 #include "VNDialogueWidget.generated.h"
 
 /**
@@ -52,6 +53,10 @@ protected:
 	// 蓝图实现的事件，用于接收角色名
 	UFUNCTION(BlueprintImplementableEvent, Category = "VN|Dialogue")
 	void OnNewCharacterName(const FString& CharacterName);
+
+	//蓝图实现的事件，用于切换背景
+	UFUNCTION(BlueprintImplementableEvent, Category = "VN|Visual")
+	void OnChangeBackground(const TSoftObjectPtr<UTexture2D>& NewBackground);
 
 private:
 	// --- 从蓝图移至C++的变量 ---

@@ -6,12 +6,21 @@
 #include "VNGameMode.h"      // 引入 GameMode 头文件，以便调用其函数
 #include "EnhancedInputSubsystems.h" // 增强输入子系统
 #include "EnhancedInputComponent.h"  // 增强输入组件
+#include "Kismet/GameplayStatics.h" 
+#include "Sound/SoundMix.h" 
+#include "Sound/SoundClass.h" 
 
 
 void AVNPlayerController::BeginPlay()
 {
 	// 必须调用基类实现
 	Super::BeginPlay();
+
+	//游戏开始时，激活主音量混合器
+	if(VolumeControlSoundMix)
+	{
+		UGameplayStatics::PushSoundMixModifier(this, VolumeControlSoundMix);
+	}
     
 	// --- 设置 Input Mapping Context (IMC) ---
 	if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
@@ -30,7 +39,7 @@ void AVNPlayerController::BeginPlay()
 		// 关键：检查 AdvanceDialogueAction 是否已在蓝图配置中设置
 		if (AdvanceDialogueAction) // <--- 符号无法解析的报错通常发生在这里
 		{
-			// 绑定 Triggered 事件到 AdvanceDialogue 函数
+			// 绑定 Triggered 事件到 AdvanceDialogue  函数
 			EnhancedInputComponent->BindAction(
 				AdvanceDialogueAction, 
 				ETriggerEvent::Started, 
@@ -96,7 +105,8 @@ void AVNPlayerController::AdvanceDialogue(const FInputActionValue& Value)
 	{
 		// 如果正在播放，则调用SkipTypewriter，让动画立即完成
 		DialogueWidgetInstance->SkipTypewriter();
-	}else
+	}
+	else
 	{
 		// 检查 GameMode 和 Widget 实例是否都存在
 		AVNGameMode* VNGameMode = Cast<AVNGameMode>(GetWorld()->GetAuthGameMode());
@@ -119,6 +129,48 @@ void AVNPlayerController::AdvanceDialogue(const FInputActionValue& Value)
 				UE_LOG(LogTemp, Warning, TEXT("Dialogue has finished."));
 			}
 		}
+	}
+}
+
+void AVNPlayerController::SetBGMVolume(float Volume)
+{
+	if(BGM_SoundClass)
+	{
+		UGameplayStatics::SetSoundMixClassOverride(
+			this,
+			VolumeControlSoundMix,
+			BGM_SoundClass,
+			Volume,
+			1.0f,
+			0.0f);
+	}
+}
+
+void AVNPlayerController::SetSFXVolume(float Volume)
+{
+	if(SFX_SoundClass)
+	{
+		UGameplayStatics::SetSoundMixClassOverride(
+			this,
+			VolumeControlSoundMix,
+			SFX_SoundClass,
+			Volume,
+			1.0f,
+			0.0f);
+	}
+}
+
+void AVNPlayerController::SetUIVolume(float Volume)
+{
+	if(UI_SoundClass)
+	{
+		UGameplayStatics::SetSoundMixClassOverride(
+			this,
+			VolumeControlSoundMix,
+			UI_SoundClass,
+			Volume,
+			1.0f,
+			0.0f);
 	}
 }
 

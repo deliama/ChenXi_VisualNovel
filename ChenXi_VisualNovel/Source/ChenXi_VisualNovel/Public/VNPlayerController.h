@@ -7,6 +7,11 @@
 // 引入 Enhanced Input 核心头文件
 #include "InputMappingContext.h"
 #include "InputAction.h"
+
+class USoundMix;
+class USoundClass;
+class USoundBase;
+
 #include "VNPlayerController.generated.h"
 
 /**
@@ -19,6 +24,16 @@ class CHENXI_VISUALNOVEL_API AVNPlayerController : public APlayerController
 	
 public:
 	AVNPlayerController();
+
+	// 新增：供蓝图调用的音量设置函数
+	UFUNCTION(BlueprintCallable, Category = "Audio")
+	void SetBGMVolume(float Volume);
+
+	UFUNCTION(BlueprintCallable, Category = "Audio")
+	void SetSFXVolume(float Volume);
+
+	UFUNCTION(BlueprintCallable, Category = "Audio")
+	void SetUIVolume(float Volume);
     
 protected:
 	// // Called to bind functionality to input
@@ -50,6 +65,20 @@ private:
 
 	// 绑定到 IA 的函数，处理对话推进
 	void AdvanceDialogue(const FInputActionValue& Value);
+
+
+	// 新增：用于在蓝图中设置我们的SoundMix和SoundClass资产
+	UPROPERTY(EditDefaultsOnly, Category = "Audio")
+	USoundMix* VolumeControlSoundMix;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Audio")
+	USoundClass* BGM_SoundClass;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Audio")
+	USoundClass* SFX_SoundClass;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Audio")
+	USoundClass* UI_SoundClass;
     
 	
 };

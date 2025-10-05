@@ -14,6 +14,9 @@ void UVNDialogueWidget::DisplayDialogueLine(const FDialogLine& DialogLine)
 	FullDialogueText = DialogLine.DialogueText;
 	OnNewCharacterName(DialogLine.CharacterName);
 
+	//切换背景图的蓝图事件
+	OnChangeBackground(DialogLine.BackgroundImage);
+
 	// 开始打字机效果
 	StartTypewriter();
     
