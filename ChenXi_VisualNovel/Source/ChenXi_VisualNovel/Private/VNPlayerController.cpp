@@ -6,10 +6,12 @@
 #include "VNGameMode.h"      // 引入 GameMode 头文件，以便调用其函数
 #include "EnhancedInputSubsystems.h" // 增强输入子系统
 #include "EnhancedInputComponent.h"  // 增强输入组件
-#include "Kismet/GameplayStatics.h" 
-#include "Sound/SoundMix.h" 
-#include "Sound/SoundClass.h" 
-
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundMix.h"
+#include "Sound/SoundClass.h"
+#include "UI/VNUIManagerSubsystem.h"  // UI 管理器
+#include "UI/VNPrimaryGameLayout.h"    // 根布局
+#include "NativeGameplayTags.h"        // GameplayTag 支持
 
 void AVNPlayerController::BeginPlay()
 {
@@ -62,25 +64,20 @@ AVNPlayerController::AVNPlayerController()
 	bAutoManageActiveCameraTarget = false;
 }
 
-// 新增函数：初始化 UI
+// 初始化 UI - 使用 CommonUI Stack 系统
 void AVNPlayerController::InitializeUI()
 {
-	// 确保只创建一次
-	if (!DialogueWidgetInstance && DialogueWidgetClass)
+	// 通过 UIManager 创建对话框
+	if (UGameInstance* GameInstance = GetGameInstance())
 	{
-		// 1. 创建 Widget 实例
-		DialogueWidgetInstance = CreateWidget<UVNDialogueWidget>(this, DialogueWidgetClass);
-        
-		if (DialogueWidgetInstance)
+		if (UVNUIManagerSubsystem* UIManager = GameInstance->GetSubsystem<UVNUIManagerSubsystem>())
 		{
-			// 2. 将 Widget 添加到视口 (Viewport)
-			DialogueWidgetInstance->AddToViewport();
-            
-			// 3. 此时可以设置输入模式为 UI Only，防止角色移动等
-			// FInputModeUIOnly InputMode;
-			// SetInputMode(InputMode);
-            
-			UE_LOG(LogTemp, Log, TEXT("Dialog Widget Initialized and added to Viewport."));
+			UIManager->ShowDialogue(this);
+			UE_LOG(LogTemp, Log, TEXT("对话框初始化请求已发送到 UIManager"));
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("无法获取 UIManager，对话框初始化失败"));
 		}
 	}
 }
@@ -93,34 +90,43 @@ void AVNPlayerController::AdvanceDialogue(const FInputActionValue& Value)
 	// 仅保留日志用于测试 Enhanced Input
 	UE_LOG(LogTemp, Warning, TEXT("!!! MOUSE CLICK DETECTED VIA ENHANCED INPUT !!!"));
 
-	// 1. 确保 UI 已经实例化并显示。
-	if (!DialogueWidgetInstance)
+	// 1. 从 UIManager 获取对话框实例
+	UVNDialogueWidget* DialogueWidgetInstance = nullptr;
+	if (UGameInstance* GameInstance = GetGameInstance())
 	{
-		InitializeUI();
-		// 第一次点击只创建UI，不立即推进对话，可以防止意外跳过第一句
-		return; 
+		if (UVNUIManagerSubsystem* UIManager = GameInstance->GetSubsystem<UVNUIManagerSubsystem>())
+		{
+			DialogueWidgetInstance = UIManager->GetDialogueWidget();
+		}
 	}
 
-	if(DialogueWidgetInstance && DialogueWidgetInstance->bIsTypewriterActive)
+	// 2. 检查对话框是否已初始化（应该由 GameMode 自动初始化）
+	if (!DialogueWidgetInstance)
 	{
-		// 如果正在播放，则调用SkipTypewriter，让动画立即完成
+		UE_LOG(LogTemp, Error, TEXT("DialogueWidget not initialized! GameMode should have initialized it."));
+		return;
+	}
+
+	// 3. 如果打字机正在播放，跳过动画
+	if(DialogueWidgetInstance->bIsTypewriterActive)
+	{
 		DialogueWidgetInstance->SkipTypewriter();
 	}
 	else
 	{
-		// 检查 GameMode 和 Widget 实例是否都存在
+		// 4. 推进到下一句对话
 		AVNGameMode* VNGameMode = Cast<AVNGameMode>(GetWorld()->GetAuthGameMode());
-    
+
 		if (VNGameMode && DialogueWidgetInstance)
 		{
 			FDialogLine CurrentLineData;
 
-			// 2. 调用 GameMode 的函数获取下一行数据
+			// 5. 调用 GameMode 的函数获取下一行数据
 			if (VNGameMode->GetNextDialogLine(CurrentLineData))
 			{
-				// 3. 将获取到的数据传递给 UI Widget
+				// 6. 将获取到的数据传递给 UI Widget
 				DialogueWidgetInstance->DisplayDialogueLine(CurrentLineData);
-            
+
 				UE_LOG(LogTemp, Log, TEXT("Controller passed data to UI: [%s]"), *CurrentLineData.CharacterName);
 			}
 			else

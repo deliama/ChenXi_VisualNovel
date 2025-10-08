@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
+#include "UI/VNActivatableWidget.h"  // 改为引入 VNActivatableWidget
 // 引入 FDialogLine 结构体所在的头文件
 #include "VNGameMode.h"
 #include "Engine/Texture2D.h"
@@ -12,9 +12,14 @@
 /**
  * Visual Novel 对话框 UI 的 C++ 基类
  * 定义了接收对话数据和处理输入反馈的接口
+ *
+ * 继承自 VNActivatableWidget，获得以下能力：
+ * - 自动输入管理（激活时阻止游戏输入）
+ * - 堆栈管理（可以推入/弹出 Stack）
+ * - 激活/停用状态管理
  */
 UCLASS()
-class CHENXI_VISUALNOVEL_API UVNDialogueWidget : public UUserWidget
+class CHENXI_VISUALNOVEL_API UVNDialogueWidget : public UVNActivatableWidget  // 改为继承 VNActivatableWidget
 {
 	// 请确保这里的 VNDEMO_API 替换为你项目实际的 API 宏！
 	GENERATED_BODY()
@@ -53,10 +58,6 @@ protected:
 	// 蓝图实现的事件，用于接收角色名
 	UFUNCTION(BlueprintImplementableEvent, Category = "VN|Dialogue")
 	void OnNewCharacterName(const FString& CharacterName);
-
-	//蓝图实现的事件，用于切换背景
-	UFUNCTION(BlueprintImplementableEvent, Category = "VN|Visual")
-	void OnChangeBackground(const TSoftObjectPtr<UTexture2D>& NewBackground);
 
 private:
 	// --- 从蓝图移至C++的变量 ---

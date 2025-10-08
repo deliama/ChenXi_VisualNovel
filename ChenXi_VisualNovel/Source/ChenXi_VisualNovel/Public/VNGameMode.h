@@ -76,12 +76,16 @@ private:
 	// 存储从DataTable加载的所有对话行
 	TArray<FDialogLine> StoryLines;
 
-	//处理对话附带的声音事件
+	// 处理对话附带的声音事件
 	void PlaySoundForLine(const FDialogLine& DialogLine);
 
-	//追踪当前正在播放的BGM
+	// 追踪当前正在播放的BGM
 	UPROPERTY()
 	UAudioComponent* CurrentBgmComponent;
+
+	// 追踪当前播放的 BGM 资源（成员变量，每次 PIE 重启时重置）
+	UPROPERTY()
+	TSoftObjectPtr<USoundCue> CurrentBGMTrack;
 
 public:
 	// 对外暴露的函数：开始游戏和加载对话

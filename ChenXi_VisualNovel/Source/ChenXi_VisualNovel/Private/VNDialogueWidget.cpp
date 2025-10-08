@@ -14,12 +14,11 @@ void UVNDialogueWidget::DisplayDialogueLine(const FDialogLine& DialogLine)
 	FullDialogueText = DialogLine.DialogueText;
 	OnNewCharacterName(DialogLine.CharacterName);
 
-	//切换背景图的蓝图事件
-	OnChangeBackground(DialogLine.BackgroundImage);
+	// 注意：背景切换现在由 GameMode 在 GetNextDialogLine 中处理，通过 UIManager 统一管理
 
 	// 开始打字机效果
 	StartTypewriter();
-    
+
 	UE_LOG(LogTemp, Log, TEXT("UI Widget received: [%s]"), *DialogLine.CharacterName);
 }
 

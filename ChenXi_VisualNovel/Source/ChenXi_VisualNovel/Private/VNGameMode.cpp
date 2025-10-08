@@ -5,6 +5,7 @@
 #include "Components/AudioComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundCue.h"
+#include "UI/VNUIManagerSubsystem.h" // 引入 UI 管理器子系统
 
 AVNGameMode::AVNGameMode()
 {
@@ -18,8 +19,37 @@ AVNGameMode::AVNGameMode()
 void AVNGameMode::BeginPlay()
 {
 	Super::BeginPlay();
-    
-	// 在游戏开始时立即加载并准备对话
+
+	// 1. 创建 UI 布局
+	if (UGameInstance* GameInstance = GetGameInstance())
+	{
+		if (UVNUIManagerSubsystem* UIManager = GameInstance->GetSubsystem<UVNUIManagerSubsystem>())
+		{
+			// 获取第一个玩家控制器
+			if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
+			{
+				UIManager->CreateRootLayoutIfNeeded(PC);
+				UE_LOG(LogTemp, Log, TEXT("VNGameMode: UI Root Layout creation requested"));
+
+				// 2. 立即初始化对话框 UI（在创建 RootLayout 后）
+				if (AVNPlayerController* VNController = Cast<AVNPlayerController>(PC))
+				{
+					VNController->InitializeUI();
+					UE_LOG(LogTemp, Log, TEXT("VNGameMode: Dialogue UI initialized"));
+				}
+			}
+			else
+			{
+				UE_LOG(LogTemp, Error, TEXT("VNGameMode: Failed to get PlayerController"));
+			}
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("VNGameMode: Failed to get VNUIManagerSubsystem"));
+		}
+	}
+
+	// 3. 在游戏开始时立即加载并准备对话
 	StartDialog();
 }
 
@@ -73,50 +103,103 @@ void AVNGameMode::StartDialog()
 
 void AVNGameMode::PlaySoundForLine(const FDialogLine& DialogLine)
 {
+	UE_LOG(LogTemp, Log, TEXT("PlaySoundForLine called"));
+
 	// --- BGM切换逻辑 ---
-	static TSoftObjectPtr<USoundCue> CurrentBGMTrack = nullptr;
+	// 注意：CurrentBGMTrack 现在是成员变量，每次 PIE 重启时会自动重置
+
+	// 调试日志：显示 BGM 状态
+	if (DialogLine.BGM.IsNull())
+	{
+		UE_LOG(LogTemp, Log, TEXT("BGM is NULL for this dialogue line"));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Log, TEXT("BGM configured: %s"), *DialogLine.BGM.ToString());
+		UE_LOG(LogTemp, Log, TEXT("Current BGM track: %s"), CurrentBGMTrack.IsNull() ? TEXT("NULL") : *CurrentBGMTrack.ToString());
+	}
+
 	if(!DialogLine.BGM.IsNull() && DialogLine.BGM != CurrentBGMTrack)
 	{
 		CurrentBGMTrack = DialogLine.BGM;
+		UE_LOG(LogTemp, Log, TEXT("Switching to new BGM: %s"), *CurrentBGMTrack.ToString());
 
 		if(CurrentBgmComponent && CurrentBgmComponent->IsPlaying())
 		{
 			CurrentBgmComponent->Stop();
+			UE_LOG(LogTemp, Log, TEXT("Stopped previous BGM"));
 		}
 
 		//使用SpawnSound2D播放声音，他会自动处理加载和播放
-		CurrentBgmComponent = UGameplayStatics::SpawnSound2D(this,DialogLine.BGM.LoadSynchronous());
-		
+		USoundCue* LoadedBGM = DialogLine.BGM.LoadSynchronous();
+		if (LoadedBGM)
+		{
+			CurrentBgmComponent = UGameplayStatics::SpawnSound2D(this, LoadedBGM);
+			if (CurrentBgmComponent)
+			{
+				UE_LOG(LogTemp, Log, TEXT("BGM spawned and playing"));
+			}
+			else
+			{
+				UE_LOG(LogTemp, Error, TEXT("Failed to spawn BGM AudioComponent"));
+			}
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("Failed to load BGM asset"));
+		}
 	}
 
 	// --- 特殊音效（SFX）播放逻辑 ---
 	if(!DialogLine.SFX.IsNull())
 	{
-		UGameplayStatics::PlaySound2D(this,DialogLine.SFX.LoadSynchronous());
+		UE_LOG(LogTemp, Log, TEXT("Playing SFX: %s"), *DialogLine.SFX.ToString());
+		USoundBase* LoadedSFX = DialogLine.SFX.LoadSynchronous();
+		if (LoadedSFX)
+		{
+			UGameplayStatics::PlaySound2D(this, LoadedSFX);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("Failed to load SFX asset"));
+		}
 	}
 }
-
 
 bool AVNGameMode::GetNextDialogLine(FDialogLine& OutDialogLine)
 {
 	if (CurrentDialogIndex < StoryLines.Num())
 	{
 		// 将数据复制到传入的引用参数中
-		OutDialogLine = StoryLines[CurrentDialogIndex]; 
+		OutDialogLine = StoryLines[CurrentDialogIndex];
 		CurrentDialogIndex++;
-        
-		UE_LOG(LogTemp, Log, TEXT("Dialog Line %d: [%s]: %s"), 
+
+		UE_LOG(LogTemp, Log, TEXT("Dialog Line %d: [%s]: %s"),
 			   CurrentDialogIndex,
-			   *OutDialogLine.CharacterName, 
+			   *OutDialogLine.CharacterName,
 			   *OutDialogLine.DialogueText.ToString());
 
+		// 处理音频
 		PlaySoundForLine(OutDialogLine);
-		
+
+		// 处理背景切换：如果此对话行配置了背景图片，通知 UIManager 切换
+		if (!OutDialogLine.BackgroundImage.IsNull())
+		{
+			if (UGameInstance* GameInstance = GetGameInstance())
+			{
+				if (UVNUIManagerSubsystem* UIManager = GameInstance->GetSubsystem<UVNUIManagerSubsystem>())
+				{
+					UIManager->SetBackground(OutDialogLine.BackgroundImage);
+					UE_LOG(LogTemp, Log, TEXT("Switching background to: %s"), *OutDialogLine.BackgroundImage.ToString());
+				}
+			}
+		}
+
 		// 成功获取数据，返回 true
 		return true;
 	}
-    
+
 	// 对话结束，返回 false
 	UE_LOG(LogTemp, Log, TEXT("End of Story Flow."));
-	return false; 
+	return false;
 }
