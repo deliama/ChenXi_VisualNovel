@@ -25,7 +25,6 @@ class CHENXI_VISUALNOVEL_API UVNDialogueWidget : public UVNActivatableWidget  //
 	GENERATED_BODY()
 
 public:
-
 	//用于追踪打字机状态，允许在蓝图中读写
 	UPROPERTY(VisibleAnywhere,BlueprintReadWrite,Category="VN|Dialogue")
 	bool bIsTypewriterActive;

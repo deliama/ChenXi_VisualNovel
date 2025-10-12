@@ -97,4 +97,25 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "VN|Dialog")
 	bool GetNextDialogLine(FDialogLine& OutDialogLine);
 
+	/**
+	 * 开始新游戏
+	 * 从主菜单调用,初始化对话系统并显示对话框
+	 */
+	UFUNCTION(BlueprintCallable, Category = "VN|Game")
+	void StartNewGame();
+
+	/**
+	 * 返回主菜单
+	 * 清理游戏状态并显示主菜单
+	 */
+	UFUNCTION(BlueprintCallable, Category = "VN|Game")
+	void ReturnToMainMenu();
+
+protected:
+	/** 游戏是否已开始 (用于判断是否显示主菜单) */
+	UPROPERTY(BlueprintReadOnly, Category = "VN|Game")
+	bool bGameStarted = false;
+
+	/** 加载对话数据 */
+	void LoadDialogueData();
 };

@@ -11,6 +11,7 @@ class APlayerController;
 class UVNBackgroundWidget;
 class UVNDialogueWidget;
 class UTexture2D;
+class UCommonActivatableWidget;
 
 /**
  * UI 管理器子系统 - 管理 UI 生命周期
@@ -69,6 +70,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "VN UI")
 	UVNDialogueWidget* GetDialogueWidget() const { return DialogueWidget; }
 
+	/**
+	 * 显示主菜单
+	 * 将主菜单推入 Menu 层的 Stack
+	 */
+	UFUNCTION(BlueprintCallable, Category = "VN UI")
+	void ShowMainMenu(APlayerController* PlayerController);
+
 protected:
 	/** 根布局 Widget 类（在蓝图派生类的 Class Defaults 中配置） */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI Classes")
@@ -81,6 +89,10 @@ protected:
 	/** 对话框 Widget 类（在蓝图派生类的 Class Defaults 中配置） */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI Classes")
 	TSoftClassPtr<UVNDialogueWidget> DialogueWidgetClass;
+
+	/** 主菜单 Widget 类（在蓝图派生类的 Class Defaults 中配置） */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI Classes")
+	TSoftClassPtr<UCommonActivatableWidget> MainMenuWidgetClass;
 
 private:
 	/** 游戏的根布局 Widget */

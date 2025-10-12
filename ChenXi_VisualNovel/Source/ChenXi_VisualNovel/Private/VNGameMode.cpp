@@ -2,6 +2,7 @@
 
 #include "VNGameMode.h"
 #include "VNPlayerController.h" // 需要引入PlayerController，以便在构造函数中设置
+#include "VNDialogueWidget.h" // 引入对话框Widget
 #include "Components/AudioComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundCue.h"
@@ -20,37 +21,31 @@ void AVNGameMode::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// 1. 创建 UI 布局
+	// 1. 获取 PlayerController
+	APlayerController* PC = GetWorld()->GetFirstPlayerController();
+	if (!PC)
+	{
+		UE_LOG(LogTemp, Error, TEXT("VNGameMode: Failed to get PlayerController"));
+		return;
+	}
+
+	// 2. 创建根布局
 	if (UGameInstance* GameInstance = GetGameInstance())
 	{
 		if (UVNUIManagerSubsystem* UIManager = GameInstance->GetSubsystem<UVNUIManagerSubsystem>())
 		{
-			// 获取第一个玩家控制器
-			if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
-			{
-				UIManager->CreateRootLayoutIfNeeded(PC);
-				UE_LOG(LogTemp, Log, TEXT("VNGameMode: UI Root Layout creation requested"));
+			UIManager->CreateRootLayoutIfNeeded(PC);
+			UE_LOG(LogTemp, Log, TEXT("VNGameMode: UI Root Layout created"));
 
-				// 2. 立即初始化对话框 UI（在创建 RootLayout 后）
-				if (AVNPlayerController* VNController = Cast<AVNPlayerController>(PC))
-				{
-					VNController->InitializeUI();
-					UE_LOG(LogTemp, Log, TEXT("VNGameMode: Dialogue UI initialized"));
-				}
-			}
-			else
-			{
-				UE_LOG(LogTemp, Error, TEXT("VNGameMode: Failed to get PlayerController"));
-			}
+			// 显示主菜单，等待玩家点击"新游戏"
+			UIManager->ShowMainMenu(PC);
+			UE_LOG(LogTemp, Log, TEXT("VNGameMode: Main menu displayed"));
 		}
 		else
 		{
 			UE_LOG(LogTemp, Error, TEXT("VNGameMode: Failed to get VNUIManagerSubsystem"));
 		}
 	}
-
-	// 3. 在游戏开始时立即加载并准备对话
-	StartDialog();
 }
 
 void AVNGameMode::StartDialog()
@@ -202,4 +197,92 @@ bool AVNGameMode::GetNextDialogLine(FDialogLine& OutDialogLine)
 	// 对话结束，返回 false
 	UE_LOG(LogTemp, Log, TEXT("End of Story Flow."));
 	return false;
+}
+
+void AVNGameMode::LoadDialogueData()
+{
+	// 检查 DataTable 是否设置
+	if (!DialogDataTable)
+	{
+		UE_LOG(LogTemp, Error, TEXT("DialogDataTable is NULL. Please set it in BP_VNGameMode."));
+		return;
+	}
+
+	// 从 DataTable 加载所有数据行
+	StoryLines.Empty();
+	TArray<FTableRowBase*> RowBaseArray;
+	FString ContextString = TEXT("FDialogLine Context");
+	DialogDataTable->GetAllRows(ContextString, RowBaseArray);
+
+	if (RowBaseArray.Num() == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("DialogDataTable is empty."));
+		return;
+	}
+
+	// 转换为 FDialogLine
+	for (FTableRowBase* RowBase : RowBaseArray)
+	{
+		if (FDialogLine* DialogLine = static_cast<FDialogLine*>(RowBase))
+		{
+			StoryLines.Add(*DialogLine);
+		}
+	}
+
+	CurrentDialogIndex = 0;
+	UE_LOG(LogTemp, Log, TEXT("VNGameMode: Dialogue data loaded. Total lines: %d"), StoryLines.Num());
+}
+
+void AVNGameMode::StartNewGame()
+{
+	UE_LOG(LogTemp, Log, TEXT("VNGameMode: Starting new game..."));
+
+	bGameStarted = true;
+
+	// 1. 加载对话数据
+	LoadDialogueData();
+
+	// 2. 获取 PlayerController
+	APlayerController* PC = GetWorld()->GetFirstPlayerController();
+	if (!PC)
+	{
+		UE_LOG(LogTemp, Error, TEXT("VNGameMode: Failed to get PlayerController"));
+		return;
+	}
+
+	// 3. 初始化对话 UI
+	if (AVNPlayerController* VNController = Cast<AVNPlayerController>(PC))
+	{
+		VNController->InitializeUI();
+		UE_LOG(LogTemp, Log, TEXT("VNGameMode: Dialogue UI initialized"));
+	}
+
+	// 4. 显示第一句对话
+	if (UGameInstance* GameInstance = GetGameInstance())
+	{
+		if (UVNUIManagerSubsystem* UIManager = GameInstance->GetSubsystem<UVNUIManagerSubsystem>())
+		{
+			if (UVNDialogueWidget* DialogueWidget = UIManager->GetDialogueWidget())
+			{
+				FDialogLine FirstLine;
+				if (GetNextDialogLine(FirstLine))
+				{
+					DialogueWidget->DisplayDialogueLine(FirstLine);
+					UE_LOG(LogTemp, Log, TEXT("VNGameMode: First dialogue line displayed"));
+				}
+			}
+		}
+	}
+}
+
+void AVNGameMode::ReturnToMainMenu()
+{
+	UE_LOG(LogTemp, Log, TEXT("VNGameMode: Returning to main menu..."));
+
+	bGameStarted = false;
+	CurrentDialogIndex = 0;
+	StoryLines.Empty();
+
+	// TODO: 隐藏对话框,显示主菜单
+	// 当主菜单实现后,在这里调用 UIManager->ShowMainMenu()
 }

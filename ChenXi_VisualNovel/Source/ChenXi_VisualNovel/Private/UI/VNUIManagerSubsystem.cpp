@@ -4,6 +4,7 @@
 #include "UI/VNPrimaryGameLayout.h"
 #include "UI/VNBackgroundWidget.h"
 #include "VNDialogueWidget.h"
+#include "CommonActivatableWidget.h"
 #include "Engine/GameInstance.h"
 #include "GameFramework/PlayerController.h"
 #include "GameplayTagContainer.h"
@@ -13,6 +14,8 @@
 
 // 定义对话层 GameplayTag
 UE_DEFINE_GAMEPLAY_TAG_STATIC(TAG_UI_Layer_Dialogue, "UI.Layer.Dialogue");
+// 定义菜单层 GameplayTag
+UE_DEFINE_GAMEPLAY_TAG_STATIC(TAG_UI_Layer_Menu, "UI.Layer.Menu");
 
 UVNUIManagerSubsystem::UVNUIManagerSubsystem()
 {
@@ -245,4 +248,49 @@ void UVNUIManagerSubsystem::ShowDialogue(APlayerController* PlayerController)
 	RootLayout->PushWidgetToLayerStack(TAG_UI_Layer_Dialogue, DialogueWidget);
 
 	UE_LOG(LogTemp, Log, TEXT("VNUIManagerSubsystem: Dialogue widget created and pushed to Dialogue layer"));
+}
+
+void UVNUIManagerSubsystem::ShowMainMenu(APlayerController* PlayerController)
+{
+	// 确保根布局已创建
+	if (!RootLayout)
+	{
+		UE_LOG(LogTemp, Error, TEXT("VNUIManagerSubsystem::ShowMainMenu: Root layout not created yet"));
+		return;
+	}
+
+	// 确保传入了有效的 PlayerController
+	if (!PlayerController)
+	{
+		UE_LOG(LogTemp, Error, TEXT("VNUIManagerSubsystem::ShowMainMenu: PlayerController is null"));
+		return;
+	}
+
+	// 没有配置主菜单 Widget 类
+	if (MainMenuWidgetClass.IsNull())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("VNUIManagerSubsystem: No MainMenuWidgetClass configured. Please set Main Menu Widget Class in BP_VNUIManagerSubsystem Class Defaults."));
+		return;
+	}
+
+	// 加载主菜单 Widget 类
+	TSubclassOf<UCommonActivatableWidget> LoadedMenuClass = MainMenuWidgetClass.LoadSynchronous();
+	if (!LoadedMenuClass)
+	{
+		UE_LOG(LogTemp, Error, TEXT("VNUIManagerSubsystem: Failed to load MainMenuWidgetClass"));
+		return;
+	}
+
+	// 创建主菜单 Widget
+	UCommonActivatableWidget* MainMenuWidget = CreateWidget<UCommonActivatableWidget>(PlayerController, LoadedMenuClass);
+	if (!MainMenuWidget)
+	{
+		UE_LOG(LogTemp, Error, TEXT("VNUIManagerSubsystem: Failed to create main menu widget"));
+		return;
+	}
+
+	// 将主菜单推入 Menu Stack 层
+	RootLayout->PushWidgetToLayerStack(TAG_UI_Layer_Menu, MainMenuWidget);
+
+	UE_LOG(LogTemp, Log, TEXT("VNUIManagerSubsystem: Main menu created and pushed to Menu layer"));
 }
