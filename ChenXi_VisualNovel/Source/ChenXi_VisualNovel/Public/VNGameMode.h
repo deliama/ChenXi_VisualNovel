@@ -87,6 +87,10 @@ private:
 	UPROPERTY()
 	TSoftObjectPtr<USoundCue> CurrentBGMTrack;
 
+	//主菜单BGM
+	UPROPERTY(EditDefaultsOnly,Category="VN|Audio")
+	TSoftObjectPtr<USoundCue> MainMenuBGM;
+
 public:
 	// 对外暴露的函数：开始游戏和加载对话
 	UFUNCTION(BlueprintCallable, Category = "VN|Flow")
