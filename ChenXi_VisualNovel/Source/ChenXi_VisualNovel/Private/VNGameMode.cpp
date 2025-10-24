@@ -250,7 +250,7 @@ void AVNGameMode::LoadDialogueData()
 		}
 	}
 
-	CurrentDialogIndex = 0;
+	//CurrentDialogIndex = 0;
 	UE_LOG(LogTemp, Log, TEXT("VNGameMode: Dialogue data loaded. Total lines: %d"), StoryLines.Num());
 }
 
@@ -357,4 +357,120 @@ void AVNGameMode::ReturnToMainMenu()
 			}
 		}
 	}
+}
+
+// -----------------------------------------------------------------
+// --- [新增] 存档/读档功能实现
+// -----------------------------------------------------------------
+
+void AVNGameMode::SaveGame(const FString& SlotName)
+{
+    if (!bGameStarted)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Cannot save game: Game not started."));
+        return;
+    }
+
+    // 1. 创建或获取存档对象
+    UVNSaveGame* SaveGameObject = Cast<UVNSaveGame>(UGameplayStatics::CreateSaveGameObject(UVNSaveGame::StaticClass()));
+    if (!SaveGameObject)
+    {
+        UE_LOG(LogTemp, Error, TEXT("Failed to create SaveGame object."));
+        return;
+    }
+
+    // 2. 填充数据
+    // [重要] GetNextDialogLine 已经将 CurrentDialogIndex++
+    // 所以我们保存的是 (CurrentDialogIndex - 1)，即当前屏幕上显示的行
+    SaveGameObject->SavedDialogIndex = FMath::Max(0, CurrentDialogIndex - 1);
+    SaveGameObject->SavedBGMTrack = CurrentBGMTrack;
+    //SaveGameObject->SavedBackgroundImage = PersistentBackgroundImage;
+    SaveGameObject->bSavedGameStarted = bGameStarted;
+    SaveGameObject->Timestamp = FDateTime::Now();
+    SaveGameObject->SlotName = SlotName;
+
+    // 3. 异步保存到磁盘
+    UGameplayStatics::AsyncSaveGameToSlot(SaveGameObject, SlotName, 0);
+    UE_LOG(LogTemp, Log, TEXT("Game saved to slot: %s (Index: %d)"), *SlotName, SaveGameObject->SavedDialogIndex);
+}
+
+bool AVNGameMode::LoadGame(const FString& SlotName, FDialogLine& OutLoadedLine)
+{
+    // 1. 检查存档是否存在
+    if (!UGameplayStatics::DoesSaveGameExist(SlotName, 0))
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Load failed: SaveGame slot %s does not exist."), *SlotName);
+        OutLoadedLine = FDialogLine();
+        return false;
+    }
+
+    // 2. 加载存档对象
+    UVNSaveGame* SaveGameObject = Cast<UVNSaveGame>(UGameplayStatics::LoadGameFromSlot(SlotName, 0));
+    if (!SaveGameObject)
+    {
+        UE_LOG(LogTemp, Error, TEXT("Load failed: Could not cast SaveGame object."));
+        OutLoadedLine = FDialogLine();
+        return false;
+    }
+	
+    // 3. 恢复GameMode的状态
+    bGameStarted = SaveGameObject->bSavedGameStarted;
+    CurrentDialogIndex = SaveGameObject->SavedDialogIndex;
+    CurrentBGMTrack = SaveGameObject->SavedBGMTrack;
+    //PersistentBackgroundImage = SaveGameObject->SavedBackgroundImage;
+
+    // 4. 确保对话数据已加载
+    LoadDialogueData();
+
+    // 5. 检查索引是否有效
+    if (!StoryLines.IsValidIndex(CurrentDialogIndex))
+    {
+        UE_LOG(LogTemp, Error, TEXT("Load failed: Saved index %d is invalid."), CurrentDialogIndex);
+        ReturnToMainMenu(); // 存档数据损坏，返回主菜单
+        return false;
+    }
+    else
+    {
+    	UE_LOG(LogTemp, Log, TEXT("Load Success: Saved index %d is valid."), CurrentDialogIndex);
+    }
+    
+    // --- 6. [重要] 恢复游戏世界状态 ---
+    
+    //TODO: 6a. 停止主菜单BGM并播放游戏BGM
+    //PlayBGM(CurrentBGMTrack);
+
+    //TODO: 6b. 恢复背景图
+    if (UGameInstance* GameInstance = GetGameInstance())
+    {
+        if (UVNUIManagerSubsystem* UIManager = GameInstance->GetSubsystem<UVNUIManagerSubsystem>())
+        {
+            // 确保对话框可见
+            if (AVNPlayerController* VNController = Cast<AVNPlayerController>(GetWorld()->GetFirstPlayerController()))
+            {
+                VNController->InitializeUI(); 
+            }
+            // 设置背景
+            //UIManager->SetBackground(PersistentBackgroundImage);
+        }
+    }
+
+    // 7. 获取加载的行的数据，并返回给UI
+    OutLoadedLine = StoryLines[CurrentDialogIndex];
+    
+    // 8. [关键] 播放 *这一行* 的一次性音效和语音
+    // (因为 ProcessLineState 还没有被调用, 我们只恢复持久状态)
+    if (!OutLoadedLine.SFX.IsNull())
+    {
+        UGameplayStatics::PlaySound2D(this, OutLoadedLine.SFX.LoadSynchronous());
+    }
+    if (!OutLoadedLine.VoiceLine.IsNull())
+    {
+        UGameplayStatics::PlaySound2D(this, OutLoadedLine.VoiceLine.LoadSynchronous());
+    }
+
+    // 9. [关键] 推进索引，为 *下一次* 玩家点击做准备
+    CurrentDialogIndex++;
+
+    UE_LOG(LogTemp, Log, TEXT("Game loaded from slot: %s. Resuming at index %d. Next index will be %d."), *SlotName, CurrentDialogIndex - 1, CurrentDialogIndex);
+    return true;
 }

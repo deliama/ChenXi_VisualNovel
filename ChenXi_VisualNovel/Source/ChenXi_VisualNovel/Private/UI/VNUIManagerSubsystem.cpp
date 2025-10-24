@@ -197,6 +197,7 @@ void UVNUIManagerSubsystem::ShowDialogue(APlayerController* PlayerController)
 {
 	if (DialogueWidget)
 	{
+		UE_LOG(LogTemp, Log, TEXT("UI已存在，不重新加载"));
 		return; // 如果已存在，直接返回
 	}
 	if (!RootLayout)

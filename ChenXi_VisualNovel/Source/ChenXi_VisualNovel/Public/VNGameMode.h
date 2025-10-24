@@ -8,6 +8,9 @@
 #include "Engine/Texture2D.h"
 #include "UObject/SoftObjectPtr.h"
 
+#include "UVNSaveGame.h"
+#include "Kismet/GameplayStatics.h"
+
 class USoundBase;
 class USoundCue;
 class UAudioComponent;
@@ -122,4 +125,22 @@ protected:
 
 	/** 加载对话数据 */
 	void LoadDialogueData();
+
+	// --- [新增] 存档/读档功能 ---
+
+	/**
+	 * 保存游戏到指定的槽位
+	 * @param SlotName - 存档槽的名称 (例如 "Slot1", "QuickSave")
+	 */
+	UFUNCTION(BlueprintCallable, Category = "VN|Game")
+	void SaveGame(const FString& SlotName);
+
+	/**
+	 * 从指定槽位加载游戏
+	 * @param SlotName - 存档槽的名称
+	 * @param OutLoadedLine - [输出] 加载成功后，返回当前行的对话数据以供UI显示
+	 * @return bool - 是否加载成功 (UI根据这个来判断是否要显示 OutLoadedLine)
+	 */
+	UFUNCTION(BlueprintCallable, Category = "VN|Game")
+	bool LoadGame(const FString& SlotName, FDialogLine& OutLoadedLine);
 };
