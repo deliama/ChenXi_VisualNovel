@@ -27,7 +27,7 @@ class UCommonActivatableWidget;
  * 2. 在蓝图的 Class Defaults 中设置 Root Layout Class 和 Background Widget Class
  * 3. 系统会自动查找并使用蓝图派生类的配置
  */
-UCLASS(Abstract, Blueprintable)
+UCLASS(Blueprintable)
 class CHENXI_VISUALNOVEL_API UVNUIManagerSubsystem : public UGameInstanceSubsystem
 {
 	GENERATED_BODY()

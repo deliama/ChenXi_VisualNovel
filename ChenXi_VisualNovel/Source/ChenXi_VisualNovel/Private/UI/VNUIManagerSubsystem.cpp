@@ -23,8 +23,9 @@ UVNUIManagerSubsystem::UVNUIManagerSubsystem()
 
 void UVNUIManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
+	UE_LOG(LogTemp, Warning, TEXT("<<<<< UVNUIManagerSubsystem::Initialize HAS BEEN CALLED for class: %s >>>>>"), *GetClass()->GetName());
 	Super::Initialize(Collection);
-
+	
 	UE_LOG(LogTemp, Log, TEXT("VNUIManagerSubsystem: Initialized"));
 }
 
