@@ -87,19 +87,19 @@ public:
 protected:
 	/** 根布局 Widget 类（在蓝图派生类的 Class Defaults 中配置） */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI Classes")
-	TSubclassOf<UVNPrimaryGameLayout> RootLayoutClass;
+	TSoftClassPtr<UVNPrimaryGameLayout> RootLayoutClass;
 
 	/** 背景 Widget 类（在蓝图派生类的 Class Defaults 中配置） */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI Classes")
-	TSubclassOf<UVNBackgroundWidget> BackgroundWidgetClass;
+	TSoftClassPtr<UVNBackgroundWidget> BackgroundWidgetClass;
 
 	/** 对话框 Widget 类（在蓝图派生类的 Class Defaults 中配置） */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI Classes")
-	TSubclassOf<UVNDialogueWidget> DialogueWidgetClass;
+	TSoftClassPtr<UVNDialogueWidget> DialogueWidgetClass;
 
 	/** 主菜单 Widget 类（在蓝图派生类的 Class Defaults 中配置） */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI Classes")
-	TSubclassOf<UCommonActivatableWidget> MainMenuWidgetClass;
+	TSoftClassPtr<UCommonActivatableWidget> MainMenuWidgetClass;
 
 private:
 	/** 游戏的根布局 Widget */

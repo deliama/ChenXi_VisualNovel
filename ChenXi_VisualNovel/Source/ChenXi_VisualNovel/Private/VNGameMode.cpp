@@ -21,52 +21,52 @@ void AVNGameMode::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// // 1. 获取 PlayerController
-	// APlayerController* PC = GetWorld()->GetFirstPlayerController();
-	// if (!PC)
-	// {
-	// 	UE_LOG(LogTemp, Error, TEXT("VNGameMode: Failed to get PlayerController"));
-	// 	return;
-	// }
-	//
-	// // 2. 创建根布局
-	// if (UGameInstance* GameInstance = GetGameInstance())
-	// {
-	// 	if (UVNUIManagerSubsystem* UIManager = GameInstance->GetSubsystem<UVNUIManagerSubsystem>())
-	// 	{
-	// 		UIManager->CreateRootLayoutIfNeeded(PC);
-	// 		UE_LOG(LogTemp, Log, TEXT("VNGameMode: UI Root Layout created"));
-	//
-	// 		CurrentBGMTrack = nullptr; 
-	// 		
-	// 		if (!MainMenuBGM.IsNull())
-	// 		{
-	// 			CurrentBGMTrack = MainMenuBGM;
-	// 			UE_LOG(LogTemp, Log, TEXT("Switching to Main Menu BGM: %s"), *CurrentBGMTrack.ToString());
-	//
-	// 			if(CurrentBgmComponent && CurrentBgmComponent->IsPlaying())
-	// 			{
-	// 				CurrentBgmComponent->Stop();
-	// 			}
-	//
-	// 			// 播放主菜单BGM
-	// 			USoundCue* LoadedBGM = MainMenuBGM.LoadSynchronous();
-	// 			if (LoadedBGM)
-	// 			{
-	// 				CurrentBgmComponent = UGameplayStatics::SpawnSound2D(this, LoadedBGM);
-	// 				
-	// 			}
-	// 		}
-	// 		
-	// 		// 显示主菜单，等待玩家点击"新游戏"
-	// 		UIManager->ShowMainMenu(PC);
-	// 		UE_LOG(LogTemp, Log, TEXT("VNGameMode: Main menu displayed"));
-	// 	}
-	// 	else
-	// 	{
-	// 		UE_LOG(LogTemp, Error, TEXT("VNGameMode: Failed to get VNUIManagerSubsystem"));
-	// 	}
-	// }
+	// 1. 获取 PlayerController
+	APlayerController* PC = GetWorld()->GetFirstPlayerController();
+	if (!PC)
+	{
+		UE_LOG(LogTemp, Error, TEXT("VNGameMode: Failed to get PlayerController"));
+		return;
+	}
+	
+	// 2. 创建根布局
+	if (UGameInstance* GameInstance = GetGameInstance())
+	{
+		if (UVNUIManagerSubsystem* UIManager = GameInstance->GetSubsystem<UVNUIManagerSubsystem>())
+		{
+			UIManager->CreateRootLayoutIfNeeded(PC);
+			UE_LOG(LogTemp, Log, TEXT("VNGameMode: UI Root Layout created"));
+	
+			CurrentBGMTrack = nullptr; 
+			
+			if (!MainMenuBGM.IsNull())
+			{
+				CurrentBGMTrack = MainMenuBGM;
+				UE_LOG(LogTemp, Log, TEXT("Switching to Main Menu BGM: %s"), *CurrentBGMTrack.ToString());
+	
+				if(CurrentBgmComponent && CurrentBgmComponent->IsPlaying())
+				{
+					CurrentBgmComponent->Stop();
+				}
+	
+				// 播放主菜单BGM
+				USoundCue* LoadedBGM = MainMenuBGM.LoadSynchronous();
+				if (LoadedBGM)
+				{
+					CurrentBgmComponent = UGameplayStatics::SpawnSound2D(this, LoadedBGM);
+					
+				}
+			}
+			
+			// 显示主菜单，等待玩家点击"新游戏"
+			UIManager->ShowMainMenu(PC);
+			UE_LOG(LogTemp, Log, TEXT("VNGameMode: Main menu displayed"));
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("VNGameMode: Failed to get VNUIManagerSubsystem"));
+		}
+	}
 }
 
 void AVNGameMode::StartDialog()

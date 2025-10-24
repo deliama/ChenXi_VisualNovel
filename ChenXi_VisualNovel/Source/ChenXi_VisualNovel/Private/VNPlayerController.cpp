@@ -62,31 +62,7 @@ void AVNPlayerController::BeginPlay()
 			UE_LOG(LogTemp, Log, TEXT("Input Action 'ToggleAutoMode' bound successfully."));
 		}
 	}
-
-	UE_LOG(LogTemp, Log, TEXT("VNPlayerController: BeginPlay - Attempting to get UIManagerSubsystem."));
-
-	if (UGameInstance* GameInstance = GetGameInstance())
-	{
-		//
-		UVNUIManagerSubsystem* UIManager = GameInstance->GetSubsystem<UVNUIManagerSubsystem>();
-		
-		if (UIManager)
-		{
-			// 如果在这里成功获取了UIManager，记录日志
-			UE_LOG(LogTemp, Log, TEXT("VNPlayerController: Successfully got UIManagerSubsystem!"));
-
-			// 创建根布局
-			UIManager->CreateRootLayoutIfNeeded(this); // 'this' 就是 PlayerController
-
-			// 显示主菜单
-			UIManager->ShowMainMenu(this);
-		}
-		else
-		{
-			// 如果在这里仍然获取失败，记录错误
-			UE_LOG(LogTemp, Error, TEXT("VNPlayerController: Failed to get UIManagerSubsystem even in PlayerController::BeginPlay!"));
-		}
-	}
+	
 }
 
 AVNPlayerController::AVNPlayerController()
