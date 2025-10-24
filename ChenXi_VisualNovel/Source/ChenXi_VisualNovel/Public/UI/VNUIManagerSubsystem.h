@@ -77,22 +77,29 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "VN UI")
 	void ShowMainMenu(APlayerController* PlayerController);
 
+	/*
+	 *隐藏（停用）对话框
+	 *从堆栈中弹出并清除本地引用
+	 */
+	UFUNCTION(BlueprintCallable, Category = "VN UI")
+	void HideDialogue();
+
 protected:
 	/** 根布局 Widget 类（在蓝图派生类的 Class Defaults 中配置） */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI Classes")
-	TSoftClassPtr<UVNPrimaryGameLayout> RootLayoutClass;
+	TSubclassOf<UVNPrimaryGameLayout> RootLayoutClass;
 
 	/** 背景 Widget 类（在蓝图派生类的 Class Defaults 中配置） */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI Classes")
-	TSoftClassPtr<UVNBackgroundWidget> BackgroundWidgetClass;
+	TSubclassOf<UVNBackgroundWidget> BackgroundWidgetClass;
 
 	/** 对话框 Widget 类（在蓝图派生类的 Class Defaults 中配置） */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI Classes")
-	TSoftClassPtr<UVNDialogueWidget> DialogueWidgetClass;
+	TSubclassOf<UVNDialogueWidget> DialogueWidgetClass;
 
 	/** 主菜单 Widget 类（在蓝图派生类的 Class Defaults 中配置） */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI Classes")
-	TSoftClassPtr<UCommonActivatableWidget> MainMenuWidgetClass;
+	TSubclassOf<UCommonActivatableWidget> MainMenuWidgetClass;
 
 private:
 	/** 游戏的根布局 Widget */

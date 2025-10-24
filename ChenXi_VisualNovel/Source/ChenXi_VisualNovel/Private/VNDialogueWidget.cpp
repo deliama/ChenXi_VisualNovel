@@ -55,6 +55,9 @@ void UVNDialogueWidget::AppendCharacter()
 		// 清除计时器并更新状态
 		GetWorld()->GetTimerManager().ClearTimer(TypewriterTimerHandle);
 		bIsTypewriterActive = false;
+
+		//通知所有订阅者
+		OnTypewriterFinished.Broadcast();
 	}
 }
 
@@ -71,5 +74,7 @@ void UVNDialogueWidget::SkipTypewriter()
 
 		// 更新状态
 		bIsTypewriterActive = false;
+
+		OnTypewriterFinished.Broadcast();
 	}
 }

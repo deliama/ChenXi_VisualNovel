@@ -45,6 +45,26 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override; // <-- 这个声明是合法的
 
+	
+	/** 切换自动模式 */
+	UFUNCTION(BlueprintCallable, Category="VN|Input")
+	void ToggleAutoMode();
+
+	/** 当打字机完成时被调用 (用于启动自动前进计时器) */
+	UFUNCTION() // UFUNCTION() 宏是绑定委托所必需的
+	void OnTypewriterFinished();
+	
+	/** 计时器回调函数, 真正执行前进的地方 */
+	void TriggerAutoAdvance();
+
+	/**
+	 * 检查自动模式是否已开启 (BlueprintPure)
+	 * 蓝图将调用此函数来检查 bIsAutoMode 的值，以便决定显示哪张图片。
+	 * BlueprintPure (纯函数) 会显示为绿色节点，没有执行引脚。
+	 */
+	UFUNCTION(BlueprintPure, Category = "VN|Input")
+	bool IsAutoModeEnabled() const { return bIsAutoMode; }
+
 private:
 	// // 玩家输入处理函数：推进对话 (绑定到鼠标左键/确认键)
 	// void AdvanceDialogue();
@@ -59,6 +79,21 @@ private:
 	// 绑定到 IA 的函数，处理对话推进
 	void AdvanceDialogue(const FInputActionValue& Value);
 
+	/** 用于切换自动模式的输入动作 (在蓝图中设置) */
+	UPROPERTY(EditDefaultsOnly, Category = "VN|Input")
+	class UInputAction* ToggleAutoModeAction;
+
+	/** 自动模式开启时, 打字机结束后等待多久再前进 (秒) */
+	UPROPERTY(EditDefaultsOnly, Category = "VN|Input")
+	float AutoModeDelay = 0.5f;
+
+	/** 追踪自动模式是否开启 */
+	bool bIsAutoMode = false;
+
+	/** 自动前进的计时器句柄 */
+	FTimerHandle AutoAdvanceTimerHandle;
+
+	
 
 	// 新增：用于在蓝图中设置我们的SoundMix和SoundClass资产
 	UPROPERTY(EditDefaultsOnly, Category = "Audio")
@@ -72,6 +107,8 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Audio")
 	USoundClass* UI_SoundClass;
+
+	
     
 	
 };

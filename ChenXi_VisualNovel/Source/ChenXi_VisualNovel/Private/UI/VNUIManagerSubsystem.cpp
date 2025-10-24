@@ -58,25 +58,36 @@ void UVNUIManagerSubsystem::Deinitialize()
 
 bool UVNUIManagerSubsystem::ShouldCreateSubsystem(UObject* Outer) const
 {
-	// Don't create for dedicated servers
-	if (!CastChecked<UGameInstance>(Outer)->IsDedicatedServerInstance())
+
+	// 不要为专用服务器创建
+	if (CastChecked<UGameInstance>(Outer)->IsDedicatedServerInstance())
 	{
-		TArray<UClass*> ChildClasses;
-		GetDerivedClasses(GetClass(), ChildClasses, false);
-
-		// 如果有蓝图派生类，优先使用蓝图派生类
-		// C++ 基类（Abstract）不应该被实例化
-		if (GetClass()->HasAnyClassFlags(CLASS_Abstract))
-		{
-			// 如果这是抽象基类，不实例化
-			return false;
-		}
-
-		// Only create if this is the most-derived class
-		return ChildClasses.Num() == 0;
+		return false;
 	}
 
-	return false;
+	// 【核心修复】
+	// 我们必须移除所有对 "CLASS_Abstract" 的检查。
+	// 引擎会自动处理抽象类，我们不需要（也不应该）在这里检查它。
+	// 我们唯一要做的就是防止它在服务器上运行。
+	
+	return true;
+	
+
+	// // Don't create for dedicated servers
+	// if (!CastChecked<UGameInstance>(Outer)->IsDedicatedServerInstance())
+	// {
+	// 	TArray<UClass*> ChildClasses;
+	// 	GetDerivedClasses(GetClass(), ChildClasses, false);
+	//
+	// 	if (GetClass()->HasAnyClassFlags(CLASS_Abstract))
+	// 	{
+	// 		return false;
+	// 	}
+	// 	
+	// 	return ChildClasses.Num() == 0;
+	// }
+	//
+	// return false;
 }
 
 void UVNUIManagerSubsystem::CreateRootLayoutIfNeeded(APlayerController* PlayerController)
@@ -95,23 +106,17 @@ void UVNUIManagerSubsystem::CreateRootLayoutIfNeeded(APlayerController* PlayerCo
 		return;
 	}
 
-	// No layout class configured
-	if (RootLayoutClass.IsNull())
+	// --- [ 修正点 1 ] ---
+	// No layout class configured (使用 !RootLayoutClass 检查 TSubclassOf)
+	if (!RootLayoutClass)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("VNUIManagerSubsystem: No RootLayoutClass configured. Please create BP_VNUIManagerSubsystem blueprint and set Root Layout Class in Class Defaults."));
 		return;
 	}
 
-	// Load the layout class
-	TSubclassOf<UVNPrimaryGameLayout> LoadedLayoutClass = RootLayoutClass.LoadSynchronous();
-	if (!LoadedLayoutClass)
-	{
-		UE_LOG(LogTemp, Error, TEXT("VNUIManagerSubsystem: Failed to load RootLayoutClass"));
-		return;
-	}
-
-	// Create the layout widget
-	RootLayout = CreateWidget<UVNPrimaryGameLayout>(PlayerController, LoadedLayoutClass);
+	// --- [ 修正点 2 ] ---
+	// TSubclassOf 可以直接传给 CreateWidget，不再需要 LoadSynchronous
+	RootLayout = CreateWidget<UVNPrimaryGameLayout>(PlayerController, RootLayoutClass);
 	if (!RootLayout)
 	{
 		UE_LOG(LogTemp, Error, TEXT("VNUIManagerSubsystem: Failed to create root layout widget"));
@@ -126,14 +131,12 @@ void UVNUIManagerSubsystem::CreateRootLayoutIfNeeded(APlayerController* PlayerCo
 
 void UVNUIManagerSubsystem::SetBackground(TSoftObjectPtr<UTexture2D> NewBackground)
 {
-	// 确保根布局已创建
 	if (!RootLayout)
 	{
 		UE_LOG(LogTemp, Error, TEXT("VNUIManagerSubsystem::SetBackground: Root layout not created yet"));
 		return;
 	}
-
-	// 确保背景 Widget 已创建
+	
 	CreateBackgroundWidgetIfNeeded();
 
 	if (!BackgroundWidget)
@@ -141,35 +144,25 @@ void UVNUIManagerSubsystem::SetBackground(TSoftObjectPtr<UTexture2D> NewBackgrou
 		UE_LOG(LogTemp, Error, TEXT("VNUIManagerSubsystem::SetBackground: Failed to create background widget"));
 		return;
 	}
-
-	// 调用背景 Widget 的切换方法
+	
 	BackgroundWidget->SetBackground(NewBackground);
 }
 
 void UVNUIManagerSubsystem::CreateBackgroundWidgetIfNeeded()
 {
-	// 已经创建
 	if (BackgroundWidget)
 	{
 		return;
 	}
 
-	// 没有配置背景 Widget 类
-	if (BackgroundWidgetClass.IsNull())
+	// --- [ 修正点 3 ] ---
+	// (使用 !BackgroundWidgetClass 检查 TSubclassOf，并移除 LoadSynchronous)
+	if (!BackgroundWidgetClass)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("VNUIManagerSubsystem: No BackgroundWidgetClass configured. Please create BP_VNUIManagerSubsystem blueprint and set Background Widget Class in Class Defaults."));
 		return;
 	}
 
-	// 加载背景 Widget 类
-	TSubclassOf<UVNBackgroundWidget> LoadedBackgroundClass = BackgroundWidgetClass.LoadSynchronous();
-	if (!LoadedBackgroundClass)
-	{
-		UE_LOG(LogTemp, Error, TEXT("VNUIManagerSubsystem: Failed to load BackgroundWidgetClass"));
-		return;
-	}
-
-	// 获取玩家控制器（用于创建 Widget）
 	if (!RootLayout)
 	{
 		UE_LOG(LogTemp, Error, TEXT("VNUIManagerSubsystem: Root layout not created yet"));
@@ -183,15 +176,14 @@ void UVNUIManagerSubsystem::CreateBackgroundWidgetIfNeeded()
 		return;
 	}
 
-	// 创建背景 Widget
-	BackgroundWidget = CreateWidget<UVNBackgroundWidget>(PC, LoadedBackgroundClass);
+	// (直接使用 BackgroundWidgetClass)
+	BackgroundWidget = CreateWidget<UVNBackgroundWidget>(PC, BackgroundWidgetClass);
 	if (!BackgroundWidget)
 	{
 		UE_LOG(LogTemp, Error, TEXT("VNUIManagerSubsystem: Failed to create background widget"));
 		return;
 	}
 
-	// 将背景 Widget 添加到 Background Named Slot 层
 	static const FGameplayTag TAG_UI_Layer_Background = FGameplayTag::RequestGameplayTag(FName("UI.Layer.Background"));
 	RootLayout->AddNativeWidgetToLayer(TAG_UI_Layer_Background, BackgroundWidget);
 
@@ -200,51 +192,40 @@ void UVNUIManagerSubsystem::CreateBackgroundWidgetIfNeeded()
 
 void UVNUIManagerSubsystem::ShowDialogue(APlayerController* PlayerController)
 {
-	// 对话框已经创建，直接返回
 	if (DialogueWidget)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("VNUIManagerSubsystem: Dialogue widget already exists"));
 		return;
 	}
-
-	// 确保根布局已创建
+	
 	if (!RootLayout)
 	{
 		UE_LOG(LogTemp, Error, TEXT("VNUIManagerSubsystem::ShowDialogue: Root layout not created yet"));
 		return;
 	}
-
-	// 确保传入了有效的 PlayerController
+	
 	if (!PlayerController)
 	{
 		UE_LOG(LogTemp, Error, TEXT("VNUIManagerSubsystem::ShowDialogue: PlayerController is null"));
 		return;
 	}
 
-	// 没有配置对话框 Widget 类
-	if (DialogueWidgetClass.IsNull())
+	// --- [ 修正点 4 ] ---
+	// (使用 !DialogueWidgetClass 检查 TSubclassOf，并移除 LoadSynchronous)
+	if (!DialogueWidgetClass)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("VNUIManagerSubsystem: No DialogueWidgetClass configured. Please set Dialogue Widget Class in BP_VNUIManagerSubsystem Class Defaults."));
 		return;
 	}
 
-	// 加载对话框 Widget 类
-	TSubclassOf<UVNDialogueWidget> LoadedDialogueClass = DialogueWidgetClass.LoadSynchronous();
-	if (!LoadedDialogueClass)
-	{
-		UE_LOG(LogTemp, Error, TEXT("VNUIManagerSubsystem: Failed to load DialogueWidgetClass"));
-		return;
-	}
-
-	// 创建对话框 Widget
-	DialogueWidget = CreateWidget<UVNDialogueWidget>(PlayerController, LoadedDialogueClass);
+	// (直接使用 DialogueWidgetClass)
+	DialogueWidget = CreateWidget<UVNDialogueWidget>(PlayerController, DialogueWidgetClass);
 	if (!DialogueWidget)
 	{
 		UE_LOG(LogTemp, Error, TEXT("VNUIManagerSubsystem: Failed to create dialogue widget"));
 		return;
 	}
-
-	// 将对话框推入 DialogueStack 层（使用 CommonUI Stack 管理）
+	
 	RootLayout->PushWidgetToLayerStack(TAG_UI_Layer_Dialogue, DialogueWidget);
 
 	UE_LOG(LogTemp, Log, TEXT("VNUIManagerSubsystem: Dialogue widget created and pushed to Dialogue layer"));
@@ -252,45 +233,49 @@ void UVNUIManagerSubsystem::ShowDialogue(APlayerController* PlayerController)
 
 void UVNUIManagerSubsystem::ShowMainMenu(APlayerController* PlayerController)
 {
-	// 确保根布局已创建
 	if (!RootLayout)
 	{
 		UE_LOG(LogTemp, Error, TEXT("VNUIManagerSubsystem::ShowMainMenu: Root layout not created yet"));
 		return;
 	}
-
-	// 确保传入了有效的 PlayerController
+	
 	if (!PlayerController)
 	{
 		UE_LOG(LogTemp, Error, TEXT("VNUIManagerSubsystem::ShowMainMenu: PlayerController is null"));
 		return;
 	}
 
-	// 没有配置主菜单 Widget 类
-	if (MainMenuWidgetClass.IsNull())
+	// --- [ 修正点 5 ] ---
+	// (使用 !MainMenuWidgetClass 检查 TSubclassOf，并移除 LoadSynchronous)
+	if (!MainMenuWidgetClass)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("VNUIManagerSubsystem: No MainMenuWidgetClass configured. Please set Main Menu Widget Class in BP_VNUIManagerSubsystem Class Defaults."));
 		return;
 	}
 
-	// 加载主菜单 Widget 类
-	TSubclassOf<UCommonActivatableWidget> LoadedMenuClass = MainMenuWidgetClass.LoadSynchronous();
-	if (!LoadedMenuClass)
-	{
-		UE_LOG(LogTemp, Error, TEXT("VNUIManagerSubsystem: Failed to load MainMenuWidgetClass"));
-		return;
-	}
-
-	// 创建主菜单 Widget
-	UCommonActivatableWidget* MainMenuWidget = CreateWidget<UCommonActivatableWidget>(PlayerController, LoadedMenuClass);
+	// (直接使用 MainMenuWidgetClass)
+	UCommonActivatableWidget* MainMenuWidget = CreateWidget<UCommonActivatableWidget>(PlayerController, MainMenuWidgetClass);
 	if (!MainMenuWidget)
 	{
 		UE_LOG(LogTemp, Error, TEXT("VNUIManagerSubsystem: Failed to create main menu widget"));
 		return;
 	}
-
-	// 将主菜单推入 Menu Stack 层
+	
 	RootLayout->PushWidgetToLayerStack(TAG_UI_Layer_Menu, MainMenuWidget);
 
 	UE_LOG(LogTemp, Log, TEXT("VNUIManagerSubsystem: Main menu created and pushed to Menu layer"));
+}
+
+void UVNUIManagerSubsystem::HideDialogue()
+{
+	if (DialogueWidget)
+	{
+		// DeactivateWidget 会自动将其从 CommonUI 堆栈中移除
+		DialogueWidget->DeactivateWidget();
+		
+		// 清除我们的 TObjectPtr 引用，这样下次 ShowDialogue 就会重新创建它
+		DialogueWidget = nullptr; 
+		
+		UE_LOG(LogTemp, Log, TEXT("VNUIManagerSubsystem: Dialogue widget deactivated and cleared."));
+	}
 }

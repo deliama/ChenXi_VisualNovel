@@ -10,6 +10,7 @@
 #include "Sound/SoundMix.h"
 #include "Sound/SoundClass.h"
 #include "UI/VNUIManagerSubsystem.h"  // UI 管理器
+#include "TimerManager.h"
 #include "UI/VNPrimaryGameLayout.h"    // 根布局
 #include "NativeGameplayTags.h"        // GameplayTag 支持
 
@@ -39,7 +40,7 @@ void AVNPlayerController::BeginPlay()
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(InputComponent))
 	{
 		// 关键：检查 AdvanceDialogueAction 是否已在蓝图配置中设置
-		if (AdvanceDialogueAction) // <--- 符号无法解析的报错通常发生在这里
+		if (AdvanceDialogueAction)
 		{
 			// 绑定 Triggered 事件到 AdvanceDialogue  函数
 			EnhancedInputComponent->BindAction(
@@ -49,6 +50,16 @@ void AVNPlayerController::BeginPlay()
 				&AVNPlayerController::AdvanceDialogue
 			);
 			UE_LOG(LogTemp, Log, TEXT("Input Action 'AdvanceDialogue' bound successfully."));
+		}
+		if (ToggleAutoModeAction)
+		{
+			EnhancedInputComponent->BindAction(
+				ToggleAutoModeAction,
+				ETriggerEvent::Started,
+				this,
+				&AVNPlayerController::ToggleAutoMode
+			);
+			UE_LOG(LogTemp, Log, TEXT("Input Action 'ToggleAutoMode' bound successfully."));
 		}
 	}
 }
@@ -74,6 +85,14 @@ void AVNPlayerController::InitializeUI()
 		{
 			UIManager->ShowDialogue(this);
 			UE_LOG(LogTemp, Log, TEXT("对话框初始化请求已发送到 UIManager"));
+
+			// 获取对话框实例并绑定事件
+			if (UVNDialogueWidget* DialogueWidget = UIManager->GetDialogueWidget())
+			{
+				// 绑定 OnTypewriterFinished 事件
+				DialogueWidget->OnTypewriterFinished.AddDynamic(this, &AVNPlayerController::OnTypewriterFinished);
+				UE_LOG(LogTemp, Log, TEXT("PlayerController bound to OnTypewriterFinished event."));
+			}
 		}
 		else
 		{
@@ -87,6 +106,10 @@ void AVNPlayerController::AdvanceDialogue(const FInputActionValue& Value)
 {
 	// *** 确保这是你在 C++ 文件中唯一的 AdvanceDialogue 定义 ***
 
+	// 玩家的任何主动点击 (鼠标、手柄、键盘) 都会打断自动前进
+	GetWorld()->GetTimerManager().ClearTimer(AutoAdvanceTimerHandle);
+	// 如果玩家点击时是自动模式, 保持自动模式开启, 但计时器被重置并等待下一次 OnTypewriterFinished
+	
 	// 仅保留日志用于测试 Enhanced Input
 	UE_LOG(LogTemp, Warning, TEXT("!!! MOUSE CLICK DETECTED VIA ENHANCED INPUT !!!"));
 
@@ -135,6 +158,64 @@ void AVNPlayerController::AdvanceDialogue(const FInputActionValue& Value)
 				UE_LOG(LogTemp, Warning, TEXT("Dialogue has finished."));
 			}
 		}
+	}
+}
+
+void AVNPlayerController::ToggleAutoMode()
+{
+	bIsAutoMode = !bIsAutoMode;
+
+	if (bIsAutoMode)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Auto Mode: ENABLED"));
+		// 立即尝试触发一次, 以防对话已经处于“等待”状态
+		OnTypewriterFinished();
+	}
+	else
+	{
+		UE_LOG(LogTemp, Log, TEXT("Auto Mode: DISABLED"));
+		// 关闭自动模式时, 清除所有待处理的计时器
+		GetWorld()->GetTimerManager().ClearTimer(AutoAdvanceTimerHandle);
+	}
+}
+
+void AVNPlayerController::OnTypewriterFinished()
+{
+	// 仅在自动模式开启 且 打字机*不*活跃时 (防止SkipTypewriter触发两次) 才设置计时器
+	if (bIsAutoMode)
+	{
+		UVNDialogueWidget* DialogueWidgetInstance = nullptr;
+		if (GetGameInstance())
+		{
+			if (UVNUIManagerSubsystem* UIManager = GetGameInstance()->GetSubsystem<UVNUIManagerSubsystem>())
+			{
+				DialogueWidgetInstance = UIManager->GetDialogueWidget();
+			}
+		}
+
+		// 确保对话框存在, 并且打字机确实 *已停止*
+		if (DialogueWidgetInstance && !DialogueWidgetInstance->bIsTypewriterActive)
+		{
+			UE_LOG(LogTemp, Log, TEXT("Auto Mode: Typewriter finished, starting timer for next line..."));
+			GetWorld()->GetTimerManager().SetTimer(
+				AutoAdvanceTimerHandle,
+				this,
+				&AVNPlayerController::TriggerAutoAdvance,
+				AutoModeDelay, // 使用我们在 .h 中定义的延迟
+				false
+			);
+		}
+	}
+}
+
+void AVNPlayerController::TriggerAutoAdvance()
+{
+	// 仅在自动模式仍然开启时才执行
+	if (bIsAutoMode)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Auto Mode: Timer fired, advancing dialogue."));
+		// 传递一个空的 FInputActionValue, 因为这不是由直接输入触发的
+		AdvanceDialogue(FInputActionValue()); 
 	}
 }
 

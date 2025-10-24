@@ -9,6 +9,9 @@
 #include "Engine/Texture2D.h"
 #include "VNDialogueWidget.generated.h"
 
+//打字机完成时的广播委托
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnTypewriterFinished);
+
 /**
  * Visual Novel 对话框 UI 的 C++ 基类
  * 定义了接收对话数据和处理输入反馈的接口
@@ -38,6 +41,10 @@ public:
 	//供蓝图实现的跳过打字机
 	UFUNCTION(BlueprintCallable,Category="VN|Dialogue")
 	void SkipTypewriter();
+
+	/** 当打字机动画播放完毕时广播 */
+	UPROPERTY(BlueprintAssignable, Category = "VN|Dialogue")
+	FOnTypewriterFinished OnTypewriterFinished;
 
 protected:
     

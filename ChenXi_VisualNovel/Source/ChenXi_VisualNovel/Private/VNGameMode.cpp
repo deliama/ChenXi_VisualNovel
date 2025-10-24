@@ -315,4 +315,46 @@ void AVNGameMode::ReturnToMainMenu()
 
 	// TODO: 隐藏对话框,显示主菜单
 	// 当主菜单实现后,在这里调用 UIManager->ShowMainMenu()
+	// --- [ 1. 停止游戏内 BGM ] ---
+	if (CurrentBgmComponent && CurrentBgmComponent->IsPlaying())
+	{
+		CurrentBgmComponent->Stop();
+	}
+	CurrentBgmComponent = nullptr;
+	CurrentBGMTrack = nullptr; 
+
+	// --- [ 2. 处理 UI 切换 ] ---
+	APlayerController* PC = GetWorld()->GetFirstPlayerController();
+	if (!PC)
+	{
+		UE_LOG(LogTemp, Error, TEXT("VNGameMode::ReturnToMainMenu - Failed to get PlayerController"));
+		return;
+	}
+
+	if (UGameInstance* GameInstance = GetGameInstance())
+	{
+		if (UVNUIManagerSubsystem* UIManager = GameInstance->GetSubsystem<UVNUIManagerSubsystem>())
+		{
+			// 1. 停用(隐藏)对话框 (调用我们刚创建的新函数)
+			UIManager->HideDialogue();
+			
+			// 2. 显示主菜单
+			UIManager->ShowMainMenu(PC);
+			
+			// 3. 重新播放主菜单BGM (这部分逻辑之前只在BeginPlay里)
+			if (!MainMenuBGM.IsNull())
+			{
+				CurrentBGMTrack = MainMenuBGM;
+				USoundCue* LoadedBGM = MainMenuBGM.LoadSynchronous();
+				if (LoadedBGM)
+				{
+					CurrentBgmComponent = UGameplayStatics::SpawnSound2D(this, LoadedBGM);
+					if (CurrentBgmComponent)
+					{
+						UE_LOG(LogTemp, Log, TEXT("VNGameMode: Playing Main Menu BGM after return."));
+					}
+				}
+			}
+		}
+	}
 }
