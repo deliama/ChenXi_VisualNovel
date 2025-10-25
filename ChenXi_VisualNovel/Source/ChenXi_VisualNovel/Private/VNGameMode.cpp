@@ -469,8 +469,27 @@ bool AVNGameMode::LoadGame(const FString& SlotName, FDialogLine& OutLoadedLine)
     }
 
     // 9. [关键] 推进索引，为 *下一次* 玩家点击做准备
-    CurrentDialogIndex++;
+    //CurrentDialogIndex++;
 
     UE_LOG(LogTemp, Log, TEXT("Game loaded from slot: %s. Resuming at index %d. Next index will be %d."), *SlotName, CurrentDialogIndex - 1, CurrentDialogIndex);
-    return true;
+
+	//10.更新当前UI显示的对话
+	if (UGameInstance* GameInstance = GetGameInstance())
+	{
+		if (UVNUIManagerSubsystem* UIManager = GameInstance->GetSubsystem<UVNUIManagerSubsystem>())
+		{
+			if (UVNDialogueWidget* DialogueWidget = UIManager->GetDialogueWidget())
+			{
+				FDialogLine outLine;
+				if (GetNextDialogLine(outLine))
+				{
+					DialogueWidget->DisplayDialogueLine(outLine);
+					UE_LOG(LogTemp, Log, TEXT("VNGameMode: Current dialogue line displayed"));
+				}
+			}
+		}
+	}
+
+
+	return true;
 }

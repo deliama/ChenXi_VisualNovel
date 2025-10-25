@@ -118,14 +118,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "VN|Game")
 	void ReturnToMainMenu();
 
-protected:
-	/** 游戏是否已开始 (用于判断是否显示主菜单) */
-	UPROPERTY(BlueprintReadOnly, Category = "VN|Game")
-	bool bGameStarted = false;
-
-	/** 加载对话数据 */
-	void LoadDialogueData();
-
 	// --- [新增] 存档/读档功能 ---
 
 	/**
@@ -143,4 +135,12 @@ protected:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "VN|Game")
 	bool LoadGame(const FString& SlotName, FDialogLine& OutLoadedLine);
+
+protected:
+	/** 游戏是否已开始 (用于判断是否显示主菜单) */
+	UPROPERTY(BlueprintReadOnly, Category = "VN|Game")
+	bool bGameStarted = false;
+
+	/** 加载对话数据 */
+	void LoadDialogueData();
 };
