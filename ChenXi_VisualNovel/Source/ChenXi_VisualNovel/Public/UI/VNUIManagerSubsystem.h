@@ -12,6 +12,7 @@ class UVNBackgroundWidget;
 class UVNDialogueWidget;
 class UTexture2D;
 class UCommonActivatableWidget;
+class UVNHistoryWidget;
 
 /**
  * UI 管理器子系统 - 管理 UI 生命周期
@@ -84,6 +85,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "VN UI")
 	void HideDialogue();
 
+	/**
+	 * 【新增】显示对话历史记录
+	 * 将历史记录 Widget 推入 Menu 层的 Stack
+	 */
+	UFUNCTION(BlueprintCallable, Category = "VN UI")
+	void ShowHistory(APlayerController* PlayerController);
+
 protected:
 	/** 根布局 Widget 类（在蓝图派生类的 Class Defaults 中配置） */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI Classes")
@@ -100,6 +108,10 @@ protected:
 	/** 主菜单 Widget 类（在蓝图派生类的 Class Defaults 中配置） */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI Classes")
 	TSoftClassPtr<UCommonActivatableWidget> MainMenuWidgetClass;
+
+	/** 【新增】历史记录 Widget 类（在 C++ 的 Initialize 中硬编码路径） */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI Classes")
+	TSoftClassPtr<UVNHistoryWidget> HistoryWidgetClass;
 
 private:
 	/** 游戏的根布局 Widget */

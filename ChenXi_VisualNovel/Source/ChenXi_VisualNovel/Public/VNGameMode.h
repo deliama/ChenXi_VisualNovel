@@ -118,6 +118,33 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "VN|Game")
 	void ReturnToMainMenu();
 
+
+	/**
+	 * 【新增】获取对话历史记录
+	 * @return 返回历史记录数组的常量引用
+	 */
+	UFUNCTION(BlueprintCallable, Category = "VN|Dialogue")
+	const TArray<FDialogLine>& GetDialogueHistory() const { return DialogueHistory; }
+
+	/**
+	 * 【新增】供 C++ 内部调用的函数，用于添加一行到历史记录
+	 * @param Line 要添加的对话行
+	 */
+	void AddToHistory(const FDialogLine& Line)
+	{
+		DialogueHistory.Add(Line);
+	}
+
+	/**
+	 * 【新增】清空对话历史
+	 * 在开始新游戏或返回主菜单时调用
+	 */
+	UFUNCTION(BlueprintCallable, Category = "VN|Dialogue")
+	void ClearHistory()
+	{
+		DialogueHistory.Empty();
+	}
+	
 	// --- [新增] 存档/读档功能 ---
 
 	/**
@@ -143,4 +170,8 @@ protected:
 
 	/** 加载对话数据 */
 	void LoadDialogueData();
+
+	/** 存储已显示过的对话历史 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "VN|Dialogue")
+	TArray<FDialogLine> DialogueHistory;
 };

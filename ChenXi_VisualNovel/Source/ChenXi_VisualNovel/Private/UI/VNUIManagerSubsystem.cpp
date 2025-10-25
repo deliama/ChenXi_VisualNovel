@@ -4,6 +4,9 @@
 #include "UI/VNPrimaryGameLayout.h"
 #include "UI/VNBackgroundWidget.h"
 #include "VNDialogueWidget.h"
+#include "VNHistoryWidget.h"
+#include "VNGameMode.h"
+#include "Kismet/GameplayStatics.h"
 #include "CommonActivatableWidget.h"
 #include "Engine/GameInstance.h"
 #include "GameFramework/PlayerController.h"
@@ -44,10 +47,14 @@ void UVNUIManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	MainMenuWidgetClass = TSoftClassPtr<UCommonActivatableWidget>(FSoftObjectPath(MainMenuWidgetPath));
 	
 
-	// 验证路径设置是否成功 (IsValid 会检查 SoftObjectPath 是否有效)
-	if (!RootLayoutClass.IsValid() || !BackgroundWidgetClass.IsValid() || !DialogueWidgetClass.IsValid() || !MainMenuWidgetClass.IsValid())
+	// 【新增】
+	const FString HistoryWidgetPath = TEXT("/Game/_Game/UI/WBP_VNHistory.WBP_VNHistory_C");
+	HistoryWidgetClass = TSoftClassPtr<UVNHistoryWidget>(FSoftObjectPath(HistoryWidgetPath));
+	
+	// 【更新】验证路径
+	if (!RootLayoutClass.IsValid() || !BackgroundWidgetClass.IsValid() || !DialogueWidgetClass.IsValid() || !MainMenuWidgetClass.IsValid() || !HistoryWidgetClass.IsValid())
 	{
-		 UE_LOG(LogTemp, Error, TEXT("VNUIManagerSubsystem: FATAL ERROR - One or more UI class paths hardcoded in C++ Initialize are INVALID! Check paths carefully."));
+		UE_LOG(LogTemp, Error, TEXT("VNUIManagerSubsystem: FATAL ERROR - One or more UI class paths hardcoded in C++ Initialize are INVALID! Check paths carefully."));
 	}
 	
 
@@ -287,4 +294,61 @@ void UVNUIManagerSubsystem::HideDialogue()
 		DialogueWidget = nullptr; 
 		UE_LOG(LogTemp, Log, TEXT("VNUIManagerSubsystem: Dialogue widget deactivated and cleared."));
 	}
+}
+
+/**
+ * 【新增】显示历史记录函数的实现
+ */
+void UVNUIManagerSubsystem::ShowHistory(APlayerController* PlayerController)
+{
+	if (!RootLayout)
+	{
+		UE_LOG(LogTemp, Error, TEXT("VNUIManagerSubsystem::ShowHistory: Root layout not created yet"));
+		return;
+	}
+	if (!PlayerController)
+	{
+		UE_LOG(LogTemp, Error, TEXT("VNUIManagerSubsystem::ShowHistory: PlayerController is null"));
+		return;
+	}
+
+	if (HistoryWidgetClass.IsNull())
+	{
+		UE_LOG(LogTemp, Error, TEXT("VNUIManagerSubsystem: HistoryWidgetClass was not set in Initialize! Check C++ path for WBP_VNHistory."));
+		return;
+	}
+
+	// 1. 【关键】获取 GameMode
+	AVNGameMode* GameMode = Cast<AVNGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
+	if (!GameMode)
+	{
+		UE_LOG(LogTemp, Error, TEXT("VNUIManagerSubsystem::ShowHistory: Failed to get AVNGameMode"));
+		return;
+	}
+
+	// 2. 【关键】从 GameMode 获取历史数据
+	const TArray<FDialogLine>& HistoryData = GameMode->GetDialogueHistory();
+
+	// 3. 加载 UI 类
+	TSubclassOf<UVNHistoryWidget> LoadedHistoryClass = HistoryWidgetClass.LoadSynchronous();
+	if (!LoadedHistoryClass)
+	{
+		UE_LOG(LogTemp, Error, TEXT("VNUIManagerSubsystem: Failed to load HistoryWidgetClass: %s"), *HistoryWidgetClass.ToString());
+		return;
+	}
+
+	// 4. 创建 Widget 实例
+	UVNHistoryWidget* NewHistoryWidget = CreateWidget<UVNHistoryWidget>(PlayerController, LoadedHistoryClass);
+	if (!NewHistoryWidget)
+	{
+		UE_LOG(LogTemp, Error, TEXT("VNUIManagerSubsystem: Failed to create history widget"));
+		return;
+	}
+
+	// 5. 【关键】将数据传递给 Widget (调用蓝图事件)
+	NewHistoryWidget->OnDisplayHistory(HistoryData);
+
+	// 6. 推入堆栈 (使用和 MainMenu 相同的图层)
+	RootLayout->PushWidgetToLayerStack(TAG_UI_Layer_Menu, NewHistoryWidget);
+	UE_LOG(LogTemp, Log, TEXT("VNUIManagerSubsystem: History widget created and pushed to Menu layer"));
 }

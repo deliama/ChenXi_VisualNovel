@@ -190,6 +190,9 @@ bool AVNGameMode::GetNextDialogLine(FDialogLine& OutDialogLine)
 		OutDialogLine = StoryLines[CurrentDialogIndex];
 		CurrentDialogIndex++;
 
+		// 【新增】将这一行添加到历史记录中
+		AddToHistory(OutDialogLine);
+
 		UE_LOG(LogTemp, Log, TEXT("Dialog Line %d: [%s]: %s"),
 			   CurrentDialogIndex,
 			   *OutDialogLine.CharacterName,
@@ -268,6 +271,8 @@ void AVNGameMode::StartNewGame()
 	CurrentBgmComponent = nullptr;
 	CurrentBGMTrack = nullptr;
 	
+	//【新增】清空先前的对话历史记录
+	ClearHistory();
 	
 	// 1. 加载对话数据
 	LoadDialogueData();
