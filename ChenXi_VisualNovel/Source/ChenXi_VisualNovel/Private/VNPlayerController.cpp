@@ -114,13 +114,19 @@ void AVNPlayerController::AdvanceDialogue(const FInputActionValue& Value)
 	// 仅保留日志用于测试 Enhanced Input
 	UE_LOG(LogTemp, Warning, TEXT("!!! MOUSE CLICK DETECTED VIA ENHANCED INPUT !!!"));
 
-	// 1. 从 UIManager 获取对话框实例
+	// 1. 获取所有需要的子系统和管理器
 	UVNDialogueWidget* DialogueWidgetInstance = nullptr;
+	UVNBackgroundWidget* BackgroundWidgetInstance = nullptr;
+	UVNPrimaryGameLayout* RootLayoutInstance = nullptr;
+	
 	if (UGameInstance* GameInstance = GetGameInstance())
 	{
 		if (UVNUIManagerSubsystem* UIManager = GameInstance->GetSubsystem<UVNUIManagerSubsystem>())
 		{
+			// 一次性获取所有需要的UI控件
 			DialogueWidgetInstance = UIManager->GetDialogueWidget();
+			BackgroundWidgetInstance = UIManager->GetBackgroundWidget();
+			RootLayoutInstance = UIManager->GetPrimaryGameLayout();
 		}
 	}
 
@@ -148,8 +154,42 @@ void AVNPlayerController::AdvanceDialogue(const FInputActionValue& Value)
 			// 5. 调用 GameMode 的函数获取下一行数据
 			if (VNGameMode->GetNextDialogLine(CurrentLineData))
 			{
+				/*
 				// 6. 将获取到的数据传递给 UI Widget
 				DialogueWidgetInstance->DisplayDialogueLine(CurrentLineData);
+
+				UE_LOG(LogTemp, Log, TEXT("Controller passed data to UI: [%s]"), *CurrentLineData.CharacterName);
+				*/
+				// 6. *** 将数据分发到所有系统 ***
+
+				// 6a. (新) 发送到角色动画系统
+				RootLayoutInstance->HandleCharacterCommand(CurrentLineData);
+
+				// 6b. (补充) 发送到背景系统
+				BackgroundWidgetInstance->SetBackgroundImage(CurrentLineData.BackgroundImage);
+				// (确保背景层已注册到RootLayout, 并且 BackgroundWidgetInstance 已添加)
+				// RootLayoutInstance->AddNativeWidgetToLayer(FGameplayTag::RequestGameplayTag(TEXT("UI.Layer.Background")), BackgroundWidgetInstance);
+				// ^^^ 这一行通常只需要在UI初始化时做一次，而不是每次推进对话都做
+
+				// 6c. (已有) 发送到对话框系统
+				DialogueWidgetInstance->DisplayDialogueLine(CurrentLineData);
+				// (确保对话框层已注册到RootLayout, 并且 DialogueWidgetInstance 已添加/推送)
+				// RootLayoutInstance->PushWidgetToLayerStack(FGameplayTag::RequestGameplayTag(TEXT("UI.Layer.Dialogue")), DialogueWidgetInstance);
+				// ^^^ 这一行通常也只需要在UI初始化时做一次
+
+				// 6d. (补充) 播放BGM和SFX
+				if (!CurrentLineData.BGM.IsNull()) // 先检查软指针是否有效
+				{
+					USoundCue* BGMCue = CurrentLineData.BGM.LoadSynchronous(); // 同步加载
+					if (BGMCue)
+					{
+						UGameplayStatics::PlaySound2D(this, BGMCue); // 传入加载后的指针
+					}
+				}
+				if (CurrentLineData.SFX) // SFX 本身就是 USoundBase*，可以直接用
+				{
+					UGameplayStatics::PlaySound2D(this, CurrentLineData.SFX);
+				}
 
 				UE_LOG(LogTemp, Log, TEXT("Controller passed data to UI: [%s]"), *CurrentLineData.CharacterName);
 			}

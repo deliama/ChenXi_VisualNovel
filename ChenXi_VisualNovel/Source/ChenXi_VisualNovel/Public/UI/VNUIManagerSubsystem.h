@@ -4,6 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
+#include "UI/VNPrimaryGameLayout.h" 
+#include "UI/VNBackgroundWidget.h" 
+#include "VNDialogueWidget.h"
 #include "VNUIManagerSubsystem.generated.h"
 
 class UVNPrimaryGameLayout;
@@ -70,6 +73,16 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "VN UI")
 	UVNDialogueWidget* GetDialogueWidget() const { return DialogueWidget; }
+
+	// --- 新增 Getters ---
+	/** 获取根布局 Widget 实例 */
+	UFUNCTION(BlueprintPure, Category = "VN|UI Manager")
+	UVNPrimaryGameLayout* GetPrimaryGameLayout() const { return RootLayout; }
+
+	/** 获取背景 Widget 实例 */
+	UFUNCTION(BlueprintPure, Category = "VN|UI Manager")
+	UVNBackgroundWidget* GetBackgroundWidget() const { return BackgroundWidget; }
+	// --- 新增结束 ---
 
 	/**
 	 * 显示主菜单

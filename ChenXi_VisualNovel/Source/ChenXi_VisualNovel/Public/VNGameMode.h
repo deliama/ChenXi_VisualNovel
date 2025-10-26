@@ -17,6 +17,20 @@ class UAudioComponent;
 
 #include "VNGameMode.generated.h"
 
+
+//--- 新增枚举 ---
+/*
+ *@brief 定义角色在屏幕上的出现位置
+ */
+UENUM(BlueprintType)
+enum class ECharacterSlot : uint8
+{
+	Hidden,		//隐藏
+	Left,
+	Center,
+	Right,
+};
+
 // 故事文本结构体 (用于存储在DataTable中)
 USTRUCT(BlueprintType)
 struct FDialogLine : public FTableRowBase
@@ -36,9 +50,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VN|Audio")
 	TSoftObjectPtr<class USoundWave> VoiceLine;
 
-	// 角色立绘/表情ID (用于通知UI显示)
+	//// 角色立绘/表情ID (用于通知UI显示)
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VN|Visual")
+	//FName CharacterSpriteID;
+
+	//要显示的立绘资源
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VN|Visual")
-	FName CharacterSpriteID;
+	TSoftObjectPtr<UTexture2D> CharacterSprite;
 
 	//新增：指定此对话行的背景图片
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VN|Visual")
@@ -51,6 +69,13 @@ public:
 	//特殊音效：如果设置了，则在此行触发一次特殊音效
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VN|Audio")
 	TSoftObjectPtr<USoundBase> SFX;
+
+	// --- 新增字段 ---
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VN|Visual")
+	ECharacterSlot CharacterSlot = ECharacterSlot::Hidden;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VN|Visual")
+	FName CharacterAnimation;
 };
 
 /**
