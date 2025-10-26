@@ -207,9 +207,9 @@ void UVNPrimaryGameLayout::HandleCharacterCommand(const FDialogLine& Row)
 
 // --- 辅助函数的实现 ---
 
-UImage* UVNPrimaryGameLayout::GetImageForSlot(ECharacterSlot Slot) const
+UImage* UVNPrimaryGameLayout::GetImageForSlot(ECharacterSlot InSlot) const
 {
-	switch (Slot)
+	switch (InSlot)
 	{
 		case ECharacterSlot::Left:   return CharImage_Left;
 		case ECharacterSlot::Center: return CharImage_Center;
@@ -218,12 +218,12 @@ UImage* UVNPrimaryGameLayout::GetImageForSlot(ECharacterSlot Slot) const
 	}
 }
 
-UWidgetAnimation* UVNPrimaryGameLayout::GetAnimationForCommand(FName AnimName, ECharacterSlot Slot) const
+UWidgetAnimation* UVNPrimaryGameLayout::GetAnimationForCommand(FName AnimName, ECharacterSlot InSlot) const
 {
     // 你的动画名 (FName) 只需要填 "FadeIn" 或 "FadeOut"
 	if (AnimName == FName(TEXT("FadeIn")))
 	{
-		switch (Slot)
+		switch (InSlot)
 		{
 			case ECharacterSlot::Left:   return FadeIn_Left;
 			case ECharacterSlot::Center: return FadeIn_Center;
@@ -232,7 +232,7 @@ UWidgetAnimation* UVNPrimaryGameLayout::GetAnimationForCommand(FName AnimName, E
 	}
 	else if (AnimName == FName(TEXT("FadeOut")))
 	{
-		switch (Slot)
+		switch (InSlot)
 		{
 			case ECharacterSlot::Left:   return FadeOut_Left;
 			case ECharacterSlot::Center: return FadeOut_Center;

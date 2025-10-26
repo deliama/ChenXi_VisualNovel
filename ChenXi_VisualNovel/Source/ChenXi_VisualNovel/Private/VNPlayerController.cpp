@@ -9,6 +9,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundMix.h"
 #include "Sound/SoundClass.h"
+#include "Sound/SoundCue.h"
 #include "UI/VNUIManagerSubsystem.h"  // UI 管理器
 #include "TimerManager.h"
 #include "UI/VNPrimaryGameLayout.h"    // 根布局
@@ -116,7 +117,6 @@ void AVNPlayerController::AdvanceDialogue(const FInputActionValue& Value)
 
 	// 1. 获取所有需要的子系统和管理器
 	UVNDialogueWidget* DialogueWidgetInstance = nullptr;
-	UVNBackgroundWidget* BackgroundWidgetInstance = nullptr;
 	UVNPrimaryGameLayout* RootLayoutInstance = nullptr;
 	
 	if (UGameInstance* GameInstance = GetGameInstance())
@@ -125,7 +125,6 @@ void AVNPlayerController::AdvanceDialogue(const FInputActionValue& Value)
 		{
 			// 一次性获取所有需要的UI控件
 			DialogueWidgetInstance = UIManager->GetDialogueWidget();
-			BackgroundWidgetInstance = UIManager->GetBackgroundWidget();
 			RootLayoutInstance = UIManager->GetPrimaryGameLayout();
 		}
 	}
@@ -134,6 +133,11 @@ void AVNPlayerController::AdvanceDialogue(const FInputActionValue& Value)
 	if (!DialogueWidgetInstance)
 	{
 		UE_LOG(LogTemp, Error, TEXT("DialogueWidget not initialized! GameMode should have initialized it."));
+		return;
+	}
+	if (!RootLayoutInstance)
+	{
+		UE_LOG(LogTemp, Error, TEXT("AdvanceDialogue: RootLayoutInstance is NULL."));
 		return;
 	}
 
@@ -166,7 +170,14 @@ void AVNPlayerController::AdvanceDialogue(const FInputActionValue& Value)
 				RootLayoutInstance->HandleCharacterCommand(CurrentLineData);
 
 				// 6b. (补充) 发送到背景系统
-				BackgroundWidgetInstance->SetBackgroundImage(CurrentLineData.BackgroundImage);
+				if (UGameInstance* GameInstance = GetGameInstance())
+				{
+					if (UVNUIManagerSubsystem* UIManager = GameInstance->GetSubsystem<UVNUIManagerSubsystem>())
+					{
+						// 直接命令 UIManager 设置背景，它会自己处理创建逻辑
+						UIManager->SetBackground(CurrentLineData.BackgroundImage);
+					}
+				}
 				// (确保背景层已注册到RootLayout, 并且 BackgroundWidgetInstance 已添加)
 				// RootLayoutInstance->AddNativeWidgetToLayer(FGameplayTag::RequestGameplayTag(TEXT("UI.Layer.Background")), BackgroundWidgetInstance);
 				// ^^^ 这一行通常只需要在UI初始化时做一次，而不是每次推进对话都做
@@ -180,15 +191,22 @@ void AVNPlayerController::AdvanceDialogue(const FInputActionValue& Value)
 				// 6d. (补充) 播放BGM和SFX
 				if (!CurrentLineData.BGM.IsNull()) // 先检查软指针是否有效
 				{
-					USoundCue* BGMCue = CurrentLineData.BGM.LoadSynchronous(); // 同步加载
-					if (BGMCue)
+					// [修复] LoadSynchronous() 返回的是 USoundBase*，不是 USoundCue*
+					USoundBase* BGMSound = CurrentLineData.BGM.LoadSynchronous(); // 同步加载
+    
+					if (BGMSound)
 					{
-						UGameplayStatics::PlaySound2D(this, BGMCue); // 传入加载后的指针
+						// [修复] 传入正确的 USoundBase* 指针
+						UGameplayStatics::PlaySound2D(this, BGMSound); // 传入加载后的指针
 					}
 				}
-				if (CurrentLineData.SFX) // SFX 本身就是 USoundBase*，可以直接用
+				if (!CurrentLineData.SFX.IsNull()) // 先检查软指针是否有效
 				{
-					UGameplayStatics::PlaySound2D(this, CurrentLineData.SFX);
+					USoundBase* SFXSound = CurrentLineData.SFX.LoadSynchronous(); // 同步加载
+					if (SFXSound)
+					{
+						UGameplayStatics::PlaySound2D(this, SFXSound); // 传入加载后的指针
+					}
 				}
 
 				UE_LOG(LogTemp, Log, TEXT("Controller passed data to UI: [%s]"), *CurrentLineData.CharacterName);

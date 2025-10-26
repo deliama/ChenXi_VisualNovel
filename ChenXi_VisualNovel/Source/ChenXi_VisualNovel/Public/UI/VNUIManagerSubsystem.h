@@ -128,15 +128,15 @@ protected:
 
 private:
 	/** 游戏的根布局 Widget */
-	UPROPERTY(Transient)
+	UPROPERTY()
 	TObjectPtr<UVNPrimaryGameLayout> RootLayout;
 
 	/** 背景 Widget 实例 */
-	UPROPERTY(Transient)
+	UPROPERTY()
 	TObjectPtr<UVNBackgroundWidget> BackgroundWidget;
 
 	/** 对话框 Widget 实例 */
-	UPROPERTY(Transient)
+	UPROPERTY()
 	TObjectPtr<UVNDialogueWidget> DialogueWidget;
 
 	/** 创建背景 Widget（如果还不存在） */

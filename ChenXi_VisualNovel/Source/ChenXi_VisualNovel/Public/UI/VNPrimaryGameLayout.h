@@ -132,9 +132,9 @@ protected:
 private:
 	// --- 【新增】：辅助函数 ---
 	/** 辅助函数：根据插槽获取对应的Image控件 */
-	UImage* GetImageForSlot(ECharacterSlot Slot) const;
+	UImage* GetImageForSlot(ECharacterSlot InSlot) const;
 
 	/** 辅助函数：根据名称和插槽获取对应的动画 */
-	UWidgetAnimation* GetAnimationForCommand(FName AnimName, ECharacterSlot Slot) const;
+	UWidgetAnimation* GetAnimationForCommand(FName AnimName, ECharacterSlot InSlot) const;
 	// --- 新增结束 ---
 };

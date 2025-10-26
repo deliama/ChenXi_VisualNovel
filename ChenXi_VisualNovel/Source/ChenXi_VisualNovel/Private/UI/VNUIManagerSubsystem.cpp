@@ -1,4 +1,3 @@
-// Copyright Chen Xi Visual Novel Team. All Rights Reserved.
 
 #include "UI/VNUIManagerSubsystem.h"
 #include "UI/VNPrimaryGameLayout.h"
