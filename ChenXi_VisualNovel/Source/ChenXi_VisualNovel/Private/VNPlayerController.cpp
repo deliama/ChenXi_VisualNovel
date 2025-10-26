@@ -213,26 +213,26 @@ void AVNPlayerController::AdvanceDialogue(const FInputActionValue& Value)
 				// RootLayoutInstance->PushWidgetToLayerStack(FGameplayTag::RequestGameplayTag(TEXT("UI.Layer.Dialogue")), DialogueWidgetInstance);
 				// ^^^ 这一行通常也只需要在UI初始化时做一次
 
-				// 6d. (补充) 播放BGM和SFX
-				if (!CurrentLineData.BGM.IsNull()) // 先检查软指针是否有效
-				{
-					// [修复] LoadSynchronous() 返回的是 USoundBase*，不是 USoundCue*
-					USoundBase* BGMSound = CurrentLineData.BGM.LoadSynchronous(); // 同步加载
-    
-					if (BGMSound)
-					{
-						// [修复] 传入正确的 USoundBase* 指针
-						UGameplayStatics::PlaySound2D(this, BGMSound); // 传入加载后的指针
-					}
-				}
-				if (!CurrentLineData.SFX.IsNull()) // 先检查软指针是否有效
-				{
-					USoundBase* SFXSound = CurrentLineData.SFX.LoadSynchronous(); // 同步加载
-					if (SFXSound)
-					{
-						UGameplayStatics::PlaySound2D(this, SFXSound); // 传入加载后的指针
-					}
-				}
+				// // 6d. (补充) 播放BGM和SFX
+				// if (!CurrentLineData.BGM.IsNull()) // 先检查软指针是否有效
+				// {
+				// 	// [修复] LoadSynchronous() 返回的是 USoundBase*，不是 USoundCue*
+				// 	USoundBase* BGMSound = CurrentLineData.BGM.LoadSynchronous(); // 同步加载
+    //
+				// 	if (BGMSound)
+				// 	{
+				// 		// [修复] 传入正确的 USoundBase* 指针
+				// 		UGameplayStatics::PlaySound2D(this, BGMSound); // 传入加载后的指针
+				// 	}
+				// }
+				// if (!CurrentLineData.SFX.IsNull()) // 先检查软指针是否有效
+				// {
+				// 	USoundBase* SFXSound = CurrentLineData.SFX.LoadSynchronous(); // 同步加载
+				// 	if (SFXSound)
+				// 	{
+				// 		UGameplayStatics::PlaySound2D(this, SFXSound); // 传入加载后的指针
+				// 	}
+				// }
 				
 
 				UE_LOG(LogTemp, Log, TEXT("Controller passed data to UI: [%s]"), *CurrentLineData.CharacterName);

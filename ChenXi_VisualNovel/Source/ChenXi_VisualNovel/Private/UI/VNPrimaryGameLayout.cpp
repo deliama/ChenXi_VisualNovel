@@ -190,7 +190,7 @@ void UVNPrimaryGameLayout::HandleCharacterCommand(const FDialogLine& Row)
 		UTexture2D* SpriteToSet = Row.CharacterSprite.LoadSynchronous();
 		if (SpriteToSet)
 		{
-			TargetImage->SetBrushFromTexture(SpriteToSet);
+			TargetImage->SetBrushFromTexture(SpriteToSet,true);
 			// 再次确保在播放FadeIn前，不透明度为0
 			TargetImage->SetRenderOpacity(0.0f);
 		}
