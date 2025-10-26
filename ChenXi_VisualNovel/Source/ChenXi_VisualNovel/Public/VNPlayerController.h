@@ -50,12 +50,19 @@ protected:
 	UFUNCTION(BlueprintCallable, Category="VN|Input")
 	void ToggleAutoMode();
 
+	/** 切换快进模式 */
+	UFUNCTION(BlueprintCallable, Category="VN|Input")
+	void ToggleFastForwardMode();
+
 	/** 当打字机完成时被调用 (用于启动自动前进计时器) */
 	UFUNCTION() // UFUNCTION() 宏是绑定委托所必需的
 	void OnTypewriterFinished();
 	
 	/** 计时器回调函数, 真正执行前进的地方 */
 	void TriggerAutoAdvance();
+
+	/** 计时器回调函数，真正执行快进的地方 */
+	void TriggerFastForward();
 
 	/**
 	 * 检查自动模式是否已开启 (BlueprintPure)
@@ -64,6 +71,13 @@ protected:
 	 */
 	UFUNCTION(BlueprintPure, Category = "VN|Input")
 	bool IsAutoModeEnabled() const { return bIsAutoMode; }
+
+	/**
+	 *	检查快进模式是否已开启（Blueprint）
+	 * @return 快进模式是否已开启
+	 */
+	UFUNCTION(BlueprintPure, Category = "VN|Input")
+	bool IsFastForwardModeEnabled() const { return bIsFastForwardMode; }
 
 private:
 	// // 玩家输入处理函数：推进对话 (绑定到鼠标左键/确认键)
@@ -83,15 +97,29 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "VN|Input")
 	class UInputAction* ToggleAutoModeAction;
 
+	/** 切换快进模式 */
+	UPROPERTY(EditDefaultsOnly, Category="VN|Input")
+	class UInputAction* ToggleFastForwardAction;
+
 	/** 自动模式开启时, 打字机结束后等待多久再前进 (秒) */
 	UPROPERTY(EditDefaultsOnly, Category = "VN|Input")
 	float AutoModeDelay = 0.5f;
 
+	/** 快进模式时，每句话之前等待时间（秒） */
+	UPROPERTY(EditDefaultsOnly, Category = "VN|Input")
+	float FastForwardDelay = 0.05f;
+
 	/** 追踪自动模式是否开启 */
 	bool bIsAutoMode = false;
 
+	/** 追踪快进模式是否开启 */
+	bool bIsFastForwardMode = false;
+
 	/** 自动前进的计时器句柄 */
 	FTimerHandle AutoAdvanceTimerHandle;
+
+	/** 快进模式的计时器句柄 */
+	FTimerHandle FastForwardTimerHandle;
 
 	
 

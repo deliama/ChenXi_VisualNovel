@@ -52,6 +52,7 @@ void AVNPlayerController::BeginPlay()
 			);
 			UE_LOG(LogTemp, Log, TEXT("Input Action 'AdvanceDialogue' bound successfully."));
 		}
+		//绑定自动模式
 		if (ToggleAutoModeAction)
 		{
 			EnhancedInputComponent->BindAction(
@@ -61,6 +62,17 @@ void AVNPlayerController::BeginPlay()
 				&AVNPlayerController::ToggleAutoMode
 			);
 			UE_LOG(LogTemp, Log, TEXT("Input Action 'ToggleAutoMode' bound successfully."));
+		}
+		//绑定快进模式
+		if (ToggleFastForwardAction)
+		{
+			EnhancedInputComponent->BindAction(
+				ToggleFastForwardAction,
+				ETriggerEvent::Started, 
+				this, 
+				&AVNPlayerController::ToggleFastForwardMode
+			);
+			UE_LOG(LogTemp, Log, TEXT("Input Action 'ToggleFastForwardMode' bound successfully."));
 		}
 	}
 	
@@ -111,9 +123,22 @@ void AVNPlayerController::AdvanceDialogue(const FInputActionValue& Value)
 	// 玩家的任何主动点击 (鼠标、手柄、键盘) 都会打断自动前进
 	GetWorld()->GetTimerManager().ClearTimer(AutoAdvanceTimerHandle);
 	// 如果玩家点击时是自动模式, 保持自动模式开启, 但计时器被重置并等待下一次 OnTypewriterFinished
+
+	const bool bIsPlayerInput = Value.Get<bool>();
+	if (bIsPlayerInput)
+	{
+		//玩家的主动点击会打断快进模式
+		if (bIsFastForwardMode)
+		{
+			bIsFastForwardMode = false;
+			UE_LOG(LogTemp, Log, TEXT("Fast Forward Mode: DISABLED (Interrupted by player input)"));
+		}
+
+		//TODO: 如果想做的话，玩家的输入也可能打断自动模式（以防万一）
+	}
 	
 	// 仅保留日志用于测试 Enhanced Input
-	UE_LOG(LogTemp, Warning, TEXT("!!! MOUSE CLICK DETECTED VIA ENHANCED INPUT !!!"));
+	//UE_LOG(LogTemp, Warning, TEXT("!!! MOUSE CLICK DETECTED VIA ENHANCED INPUT !!!"));
 
 	// 1. 获取所有需要的子系统和管理器
 	UVNDialogueWidget* DialogueWidgetInstance = nullptr;
@@ -208,6 +233,7 @@ void AVNPlayerController::AdvanceDialogue(const FInputActionValue& Value)
 						UGameplayStatics::PlaySound2D(this, SFXSound); // 传入加载后的指针
 					}
 				}
+				
 
 				UE_LOG(LogTemp, Log, TEXT("Controller passed data to UI: [%s]"), *CurrentLineData.CharacterName);
 			}
@@ -215,6 +241,10 @@ void AVNPlayerController::AdvanceDialogue(const FInputActionValue& Value)
 			{
 				// 对话结束
 				UE_LOG(LogTemp, Warning, TEXT("Dialogue has finished."));
+				bIsFastForwardMode = false;
+				bIsAutoMode = false;
+				GetWorld()->GetTimerManager().ClearTimer(AutoAdvanceTimerHandle);
+				GetWorld()->GetTimerManager().ClearTimer(FastForwardTimerHandle);
 			}
 		}
 	}
@@ -227,6 +257,15 @@ void AVNPlayerController::ToggleAutoMode()
 	if (bIsAutoMode)
 	{
 		UE_LOG(LogTemp, Log, TEXT("Auto Mode: ENABLED"));
+
+		if (bIsFastForwardMode)
+		{
+			bIsFastForwardMode = false;
+			UE_LOG(LogTemp, Log, TEXT("Fast Forward Mode: DISABLED(Auto Mode Enabled"));
+
+			GetWorld()->GetTimerManager().ClearTimer(FastForwardTimerHandle);
+		}
+		
 		// 立即尝试触发一次, 以防对话已经处于“等待”状态
 		OnTypewriterFinished();
 	}
@@ -238,8 +277,43 @@ void AVNPlayerController::ToggleAutoMode()
 	}
 }
 
+void AVNPlayerController::ToggleFastForwardMode()
+{
+	bIsFastForwardMode= !bIsFastForwardMode;
+
+	if (bIsFastForwardMode)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Fast Forward Mode: ENABLED"));
+
+		// [新增] 开启快进时, 必须关闭自动模式
+		if (bIsAutoMode)
+		{
+			bIsAutoMode = false;
+			UE_LOG(LogTemp, Log, TEXT("Auto Mode: DISABLED (Fast Forward enabled)"));
+			// 确保清除自动计时器
+			GetWorld()->GetTimerManager().ClearTimer(AutoAdvanceTimerHandle);
+		}
+
+		GetWorld()->GetTimerManager().SetTimer(
+			FastForwardTimerHandle,
+			this,
+			&AVNPlayerController::TriggerFastForward,
+			FastForwardDelay,
+			true);
+		//立即触发一次
+		TriggerFastForward();
+	}
+	else
+	{
+		UE_LOG(LogTemp, Log, TEXT("Fast Forward Mode: DISABLED"));
+		GetWorld()->GetTimerManager().ClearTimer(FastForwardTimerHandle);
+	}
+}
+
 void AVNPlayerController::OnTypewriterFinished()
 {
+
+	//检查自动模式
 	// 仅在自动模式开启 且 打字机*不*活跃时 (防止SkipTypewriter触发两次) 才设置计时器
 	if (bIsAutoMode)
 	{
@@ -275,6 +349,22 @@ void AVNPlayerController::TriggerAutoAdvance()
 		UE_LOG(LogTemp, Log, TEXT("Auto Mode: Timer fired, advancing dialogue."));
 		// 传递一个空的 FInputActionValue, 因为这不是由直接输入触发的
 		AdvanceDialogue(FInputActionValue()); 
+	}
+}
+
+void AVNPlayerController::TriggerFastForward()
+{
+	// 仅在快进模式仍然开启时才执行
+	// (这是一个安全检查, 尽管计时器在 Toggle 时应该已被清除)
+	if (bIsFastForwardMode)
+	{
+		// 传递一个空的 FInputActionValue, 因为这不是由直接输入触发的
+		AdvanceDialogue(FInputActionValue()); 
+	}
+	else
+	{
+		// 如果由于某种原因计时器仍在运行但 bIsFastForwarding 已为 false，则停止计时器
+		GetWorld()->GetTimerManager().ClearTimer(FastForwardTimerHandle);
 	}
 }
 
