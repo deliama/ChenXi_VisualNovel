@@ -210,6 +210,8 @@ bool AVNGameMode::GetNextDialogLine(FDialogLine& OutDialogLine)
 				{
 					UIManager->SetBackground(OutDialogLine.BackgroundImage);
 					UE_LOG(LogTemp, Log, TEXT("Switching background to: %s"), *OutDialogLine.BackgroundImage.ToString());
+
+					PersistentBackgroundImage = OutDialogLine.BackgroundImage;
 				}
 			}
 		}
@@ -389,7 +391,7 @@ void AVNGameMode::SaveGame(const FString& SlotName)
     // 所以我们保存的是 (CurrentDialogIndex - 1)，即当前屏幕上显示的行
     SaveGameObject->SavedDialogIndex = FMath::Max(0, CurrentDialogIndex - 1);
     SaveGameObject->SavedBGMTrack = CurrentBGMTrack;
-    //SaveGameObject->SavedBackgroundImage = PersistentBackgroundImage;
+    SaveGameObject->SavedBackgroundImage = PersistentBackgroundImage;
     SaveGameObject->bSavedGameStarted = bGameStarted;
     SaveGameObject->Timestamp = FDateTime::Now();
     SaveGameObject->SlotName = SlotName;
@@ -422,7 +424,7 @@ bool AVNGameMode::LoadGame(const FString& SlotName, FDialogLine& OutLoadedLine)
     bGameStarted = SaveGameObject->bSavedGameStarted;
     CurrentDialogIndex = SaveGameObject->SavedDialogIndex;
     CurrentBGMTrack = SaveGameObject->SavedBGMTrack;
-    //PersistentBackgroundImage = SaveGameObject->SavedBackgroundImage;
+    PersistentBackgroundImage = SaveGameObject->SavedBackgroundImage;
 
     // 4. 确保对话数据已加载
     LoadDialogueData();
@@ -455,7 +457,7 @@ bool AVNGameMode::LoadGame(const FString& SlotName, FDialogLine& OutLoadedLine)
                 VNController->InitializeUI(); 
             }
             // 设置背景
-            //UIManager->SetBackground(PersistentBackgroundImage);
+            UIManager->SetBackground(PersistentBackgroundImage);
         }
     }
 

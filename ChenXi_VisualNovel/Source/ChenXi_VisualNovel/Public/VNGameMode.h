@@ -104,6 +104,10 @@ private:
 	// 存储从DataTable加载的所有对话行
 	TArray<FDialogLine> StoryLines;
 
+	/** [新增] 跟踪当前显示的背景图，以便存档 */
+	UPROPERTY()
+	TSoftObjectPtr<UTexture2D> PersistentBackgroundImage;
+
 	// 处理对话附带的声音事件
 	void PlaySoundForLine(const FDialogLine& DialogLine);
 
